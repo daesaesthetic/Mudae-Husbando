@@ -1,0 +1,691 @@
+# MUDAE HUSBANDO V2
+# AUTHORITATIVE ARCHITECTURE AUDIT
+# PRE-MILESTONE 3
+
+You are a NEW Replit Agent taking ownership of an EXISTING Mudae Husbando V2 repository.
+
+The repository is already imported into this Replit project.
+
+Your task is to perform a COMPLETE READ-ONLY ARCHITECTURE AUDIT of the CURRENT repository and return the results directly in your final response.
+
+This is an INSPECTION task, not an implementation task.
+
+The purpose of this audit is to establish the authoritative technical foundation for Milestone 3.
+
+==================================================
+ABSOLUTE INSTRUCTIONS
+==================================================
+
+The CURRENT repository is the only authoritative source of truth.
+
+Do not assume that architecture from previous conversations, previous agents, old milestone documents, or earlier versions of this project still exists.
+
+You MUST inspect the actual repository.
+
+You MUST read the relevant source files, schemas, migrations, configuration, services, Discord implementation, and tests necessary to understand the current architecture.
+
+READ-ONLY repository inspection IS authorized.
+
+You may:
+
+- list files
+- inspect directories
+- read source files
+- search source code
+- inspect package manifests
+- inspect TypeScript configuration
+- inspect Replit configuration
+- inspect database schemas
+- inspect migrations
+- inspect tests
+- inspect Git history if useful
+
+You MUST NOT modify the repository.
+
+==================================================
+DO NOT MODIFY THE PROJECT
+==================================================
+
+Do NOT:
+
+- edit source files
+- create files
+- delete files
+- rename files
+- modify package files
+- install dependencies
+- modify configuration
+- modify database data
+- run migrations
+- refactor code
+- fix bugs
+- implement Milestone 3
+- create another Replit project
+- copy the repository
+- replace the existing architecture
+
+If you discover a bug or architectural concern, REPORT IT ONLY.
+
+Do not fix it.
+
+==================================================
+IMPORTANT: DO NOT STOP AT ACKNOWLEDGEMENT
+==================================================
+
+Your job is NOT complete if you respond with:
+
+"The repository remains unchanged."
+
+Your job is NOT complete if you say:
+
+"I see the audit attachment."
+
+Your job is NOT complete if you simply acknowledge the request.
+
+You MUST inspect the repository and produce the COMPLETE AUDIT in your final response.
+
+The final response itself must contain the audit.
+
+Do not create an attachment instead of providing the report.
+
+==================================================
+CURRENT MILESTONE 2 CONTEXT
+==================================================
+
+The current V2 Milestone 2 implementation has been manually tested in Discord and is considered FUNCTIONALLY VALIDATED.
+
+Known working gameplay includes:
+
+- verified-character rolling
+- /roll
+- persistent rolls
+- Discord character cards
+- public Claim Character buttons
+- /claim
+- transactional claiming
+- first-claim-wins behavior
+- persistent ownership
+- duplicate character ownership
+- roll expiration
+- Discord integration
+
+The intended gameplay rule is:
+
+A user who rolls a character does NOT automatically own that character.
+
+A roll is publicly claimable.
+
+The first successful claimant receives the character.
+
+The system therefore intentionally distinguishes:
+
+rolled_by
+
+from:
+
+claimed_by
+
+These may be different Discord users.
+
+Example:
+
+rolled_by  = User A
+claimed_by = User B
+
+is completely valid.
+
+DO NOT modify this behavior.
+
+==================================================
+1. REPOSITORY STRUCTURE
+==================================================
+
+Inspect the repository and identify the actual important directories and files.
+
+For each major directory or architectural area, explain:
+
+- actual path
+- purpose
+- important files
+- dependencies on other areas
+
+Do not invent directory names.
+
+Use actual paths from the repository.
+
+==================================================
+2. RUNTIME AND TOOLING
+==================================================
+
+Inspect the actual project configuration.
+
+Determine:
+
+- package manager
+- Node/runtime version if specified
+- workspace structure
+- TypeScript configuration
+- build system
+- development command
+- production/start command
+- test command
+- typecheck command
+- formatting command
+- lint command if present
+- Replit workflow configuration
+
+Use the actual commands defined by the repository.
+
+Do not invent commands.
+
+==================================================
+3. DATABASE ARCHITECTURE
+==================================================
+
+Determine the ACTUAL database technology.
+
+Identify:
+
+- database provider/type
+- database client/driver
+- ORM or query builder if present
+- schema definitions
+- migration system
+- migration files
+- migration execution
+- startup initialization
+- transaction implementation
+
+Identify every important table/model involved in the game.
+
+At minimum investigate whether the repository contains equivalents of:
+
+- characters
+- rolls
+- ownership
+- users/players
+- guild/server data
+
+For each relevant table/model report:
+
+- actual name
+- primary key
+- important columns
+- relationships
+- foreign keys
+- unique constraints
+- indexes
+- status fields
+- timestamps
+- quantity fields
+
+Do not assume SQLite.
+
+Do not assume PostgreSQL.
+
+Determine it from the repository.
+
+==================================================
+4. CHARACTER ARCHITECTURE
+==================================================
+
+Inspect the actual character system.
+
+Determine:
+
+- character schema/model
+- repository/data-access layer
+- catalog source
+- seed/import system
+- verification status
+- aliases
+- series
+- rarity
+- value
+- artwork/image fields
+- descriptions
+- other metadata
+
+Determine exactly how the bot decides whether a character is eligible to roll.
+
+Trace the real /roll character-selection path.
+
+Represent the actual flow using real file/service names:
+
+/roll
+  ↓
+actual component
+  ↓
+actual component
+  ↓
+verified character
+
+Do not guess.
+
+Also identify the authoritative source of character truth.
+
+The desired architectural principle is:
+
+DATABASE/CATALOG = CHARACTER TRUTH
+
+Confirm whether the current implementation follows this principle.
+
+==================================================
+5. ROLL ARCHITECTURE
+==================================================
+
+Trace the entire /roll implementation.
+
+Identify:
+
+- slash command
+- command handler
+- service layer
+- repository/database calls
+- roll ID generation
+- Discord user ID
+- guild/server ID
+- character ID
+- creation timestamp
+- expiration timestamp
+- claim state
+- rolled_by
+- claimed_by
+
+Explain where the persistent roll is created.
+
+Document the actual flow:
+
+Discord /roll
+    ↓
+actual handler
+    ↓
+actual service
+    ↓
+database
+    ↓
+persistent roll
+    ↓
+character card
+
+==================================================
+6. CLAIM ARCHITECTURE
+==================================================
+
+Inspect the current claim implementation in detail.
+
+Identify:
+
+- Claim Character button handler
+- button custom ID format
+- claim service
+- /claim command
+- transaction boundaries
+- ownership creation/update
+- claimed_by
+- claimed_at
+- expiration validation
+- verification validation
+- already-claimed validation
+- concurrency/race protection
+
+Document the actual flow:
+
+Claim Character
+    ↓
+actual handler
+    ↓
+actual claim service
+    ↓
+transaction
+    ↓
+ownership
+
+Confirm that the current implementation permits a user other than rolled_by to claim a roll.
+
+Confirm how first-claim-wins is enforced.
+
+Do not modify the implementation.
+
+==================================================
+7. OWNERSHIP ARCHITECTURE
+==================================================
+
+Inspect how ownership is represented.
+
+Determine:
+
+- ownership table/model
+- ownership primary key
+- user relationship
+- character relationship
+- quantity representation
+- duplicate handling
+- acquisition timestamp
+- unique constraints
+- collection queries
+- existing ownership repository/service
+
+Answer specifically:
+
+How would the current system retrieve every character owned by one Discord user?
+
+Determine whether an actual collection service already exists.
+
+If it does not exist, explicitly state that.
+
+==================================================
+8. PLAYER / USER ARCHITECTURE
+==================================================
+
+Determine whether a persistent player/user abstraction already exists.
+
+Inspect how Discord users are represented.
+
+Determine whether the current system stores:
+
+- Discord user ID
+- username
+- display name
+- guild ID
+- player statistics
+- roll counts
+- claim counts
+- collection counts
+- other player metadata
+
+If no persistent player model exists, state exactly:
+
+"No persistent player model currently exists."
+
+Do not create one.
+
+==================================================
+9. DISCORD ARCHITECTURE
+==================================================
+
+Inspect the actual Discord implementation.
+
+Determine:
+
+- Discord client initialization
+- command registration
+- slash command structure
+- command handler structure
+- interaction handlers
+- button handlers
+- embeds
+- character cards
+- pagination utilities
+- ephemeral responses
+- error handling
+- startup behavior
+- shutdown behavior
+
+Determine the CURRENT recommended pattern for adding a new command.
+
+Do not propose a new architecture unless the existing architecture cannot support it.
+
+==================================================
+10. CURRENT COMMAND INVENTORY
+==================================================
+
+Produce a complete inventory of commands actually implemented in the current repository.
+
+For each command report:
+
+- command name
+- purpose
+- source file
+- service(s) used
+- database interaction
+- important user-facing behavior
+
+Do not list commands that only appear in documentation but are not implemented.
+
+==================================================
+11. API ARCHITECTURE
+==================================================
+
+Inspect the API/server layer.
+
+Determine:
+
+- API package/application
+- server entry point
+- routes
+- health endpoint
+- database access
+- service architecture
+- Discord/API relationship
+- existing game endpoints
+- existing collection/profile endpoints if any
+
+Explain whether Discord commands directly use game services or communicate through the API.
+
+==================================================
+12. TEST ARCHITECTURE
+==================================================
+
+Inspect the current automated tests.
+
+Determine:
+
+- test framework
+- test locations
+- database testing strategy
+- fixtures/seed data
+- transaction testing
+- current character tests
+- roll tests
+- claim tests
+- ownership tests
+- concurrency tests
+- Discord tests if any
+
+Explicitly identify which Milestone 2 behaviors are already protected by automated tests.
+
+==================================================
+13. MILESTONE 2 STABILITY BOUNDARY
+==================================================
+
+Identify the ACTUAL files and services that constitute the validated Milestone 2 foundation.
+
+At minimum identify the current implementation responsible for:
+
+- verified character selection
+- roll creation
+- claim transaction
+- ownership persistence
+- Discord claim interaction
+
+For each component explain:
+
+- what it does
+- why it is important
+- whether Milestone 3 should extend it or leave it untouched
+
+Treat validated Milestone 2 gameplay as STABLE.
+
+==================================================
+14. MILESTONE 3 READINESS
+==================================================
+
+DO NOT IMPLEMENT MILESTONE 3.
+
+Instead, analyze the repository's readiness for these future systems:
+
+### /collection
+
+A player's owned-character collection.
+
+### /profile
+
+A player's statistics and collection information.
+
+### /search
+
+Search against the verified character catalog.
+
+### /favorite
+
+Potential future favorite-character functionality.
+
+For each system determine:
+
+- what already exists
+- what can be reused
+- what must be created
+- potential database changes
+- potential services
+- potential repositories
+- potential Discord commands
+- potential Discord UI components
+- potential tests
+
+Do not implement any of these.
+
+==================================================
+15. COLLECTION ARCHITECTURE RECOMMENDATION
+==================================================
+
+Based ONLY on the actual repository, recommend how a future collection system should be structured.
+
+Consider:
+
+- database queries
+- ownership quantities
+- duplicate characters
+- sorting
+- pagination
+- Discord embeds
+- performance
+- separation of concerns
+
+The recommendation must fit the CURRENT architecture.
+
+Do not invent a completely new architecture unless necessary.
+
+==================================================
+16. ARCHITECTURAL RISKS
+==================================================
+
+Identify architectural risks that could affect Milestone 3.
+
+Categorize each:
+
+CRITICAL
+Could cause incorrect gameplay, ownership, or data.
+
+IMPORTANT
+Should be addressed during Milestone 3.
+
+OPTIONAL
+Useful improvement but not a blocker.
+
+For every risk explain:
+
+- what the issue is
+- where it exists
+- why it matters
+- whether it should be addressed before or during Milestone 3
+
+DO NOT FIX THESE ISSUES.
+
+==================================================
+17. SOURCE-OF-TRUTH PRIORITY
+==================================================
+
+When information conflicts, use this priority:
+
+1. Current source code
+2. Current database/schema/migrations
+3. Current tests
+4. Current package/configuration
+5. Current README/documentation
+
+If documentation contradicts source code:
+
+REPORT THE DISCREPANCY.
+
+Do not silently follow the documentation.
+
+==================================================
+18. UNKNOWN INFORMATION
+==================================================
+
+If something cannot be established from the repository, explicitly state:
+
+"Not determinable from the current repository."
+
+Do not guess.
+
+==================================================
+REQUIRED FINAL RESPONSE
+==================================================
+
+Your final response MUST use these headings:
+
+# Executive Summary
+
+# Repository Structure
+
+# Runtime & Tooling
+
+# Database Architecture
+
+# Character Architecture
+
+# Roll Architecture
+
+# Claim Architecture
+
+# Ownership Architecture
+
+# Player / User Architecture
+
+# Discord Architecture
+
+# Current Command Inventory
+
+# API Architecture
+
+# Test Architecture
+
+# Milestone 2 Stability Boundary
+
+# Milestone 3 Readiness
+
+# Recommended Collection Architecture
+
+# Architectural Risks
+
+# Files Milestone 3 Will Likely Touch
+
+# Unknowns / Unresolved Questions
+
+# Final Recommendation
+
+==================================================
+FINAL REQUIREMENT
+==================================================
+
+This is a READ-ONLY AUDIT.
+
+The repository must remain unchanged.
+
+However, you MUST actually inspect the repository and return the complete technical audit in your final response.
+
+Do not merely acknowledge the task.
+
+Do not say the repository remains unchanged as your only response.
+
+Do not say an audit attachment exists.
+
+Do not ask what outcome is desired.
+
+The outcome is explicitly defined above:
+
+INSPECT THE CURRENT REPOSITORY AND RETURN THE AUTHORITATIVE ARCHITECTURE AUDIT.
+
+Only after the audit is complete should development continue to Milestone 3.
