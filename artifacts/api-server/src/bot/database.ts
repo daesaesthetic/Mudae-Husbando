@@ -96,7 +96,12 @@ export class GameDatabase {
     const result = await this.pool.query(
       `SELECT id, name, aliases, series, media_type AS "mediaType", gender, source_url AS "sourceUrl",
               image_url AS "imageUrl", description, rarity, value, status
-       FROM mudae_characters WHERE status = 'verified' ORDER BY RANDOM() LIMIT 1`,
+       FROM mudae_characters c
+       WHERE c.status = 'verified'
+         AND NOT EXISTS (
+           SELECT 1 FROM mudae_collections o WHERE o.character_id = c.id
+         )
+       ORDER BY RANDOM() LIMIT 1`,
     );
     return result.rows[0] as
       ((typeof seedCharacters)[number] & { id: number }) | undefined;
@@ -158,6 +163,19 @@ export class GameDatabase {
         await client.query("ROLLBACK");
         return "claimed" as const;
       }
+      // Serialize claims for the same character so two outstanding rolls
+      // cannot both pass the global uniqueness check.
+      await client.query("SELECT pg_advisory_xact_lock($1)", [
+        selectedRoll.character_id,
+      ]);
+      const existingOwnership = await client.query(
+        "SELECT 1 FROM mudae_collections WHERE character_id = $1 LIMIT 1",
+        [selectedRoll.character_id],
+      );
+      if (existingOwnership.rowCount) {
+        await client.query("ROLLBACK");
+        return "unavailable" as const;
+      }
       if (new Date(selectedRoll.expires_at).getTime() <= Date.now()) {
         await client.query("ROLLBACK");
         return "expired" as const;
@@ -172,8 +190,8 @@ export class GameDatabase {
         [selectedRoll.id, discordId],
       );
       await client.query(
-        `INSERT INTO mudae_collections (discord_id, character_id) VALUES ($1,$2)
-         ON CONFLICT (discord_id, character_id) DO UPDATE SET quantity = mudae_collections.quantity + 1`,
+        `INSERT INTO mudae_collections (discord_id, character_id, quantity)
+         VALUES ($1,$2,1) ON CONFLICT (discord_id, character_id) DO NOTHING`,
         [discordId, characterId],
       );
       await client.query(

@@ -27,6 +27,7 @@ class FakePool {
     status: "verified",
   };
   public claims: string[] = [];
+  public existingOwnership = false;
 
   async connect() {
     let ownsLock = false;
@@ -34,6 +35,12 @@ class FakePool {
     const client = {
       query: async (sql: string, params?: unknown[]): Promise<QueryResult> => {
         if (sql === "BEGIN") return { rows: [], rowCount: 0 };
+        if (sql.startsWith("SELECT pg_advisory_xact_lock"))
+          return { rows: [], rowCount: 0 };
+        if (sql.startsWith("SELECT 1 FROM mudae_collections"))
+          return this.existingOwnership
+            ? { rows: [{ character_id: 1 }], rowCount: 1 }
+            : { rows: [], rowCount: 0 };
         if (sql.includes("FOR UPDATE")) {
           const previousLock = this.claimLock;
           this.claimLock = new Promise<void>((resolve) => {
@@ -134,6 +141,18 @@ describe("claim transaction foundation", () => {
     assert.equal(results.filter((result) => typeof result === "object").length, 1);
     assert.equal(results.filter((result) => result === "claimed").length, 1);
     assert.equal(pool.claims.length, 1);
+  });
+
+  it("rejects a claim when the character is already owned globally", async () => {
+    const pool = new FakePool();
+    pool.existingOwnership = true;
+    const database = new GameDatabase(pool as unknown as pg.Pool);
+    const result = await database.claimRoll(
+      "00000000-0000-0000-0000-000000000001",
+      "claimer",
+    );
+    assert.equal(result, "unavailable");
+    assert.deepEqual(pool.claims, []);
   });
 });
 

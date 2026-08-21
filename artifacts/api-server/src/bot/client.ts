@@ -118,6 +118,7 @@ export async function startDiscordBot() {
         const messages = {
           success: "Character claimed and saved to your collection.",
           claimed: "That roll has already been claimed.",
+          unavailable: "That character has already been claimed by another player.",
           expired: "That roll has expired and can no longer be claimed.",
           unverified:
             "This character is no longer verified and cannot be claimed.",
@@ -174,6 +175,7 @@ export async function startDiscordBot() {
           {
             invalid: "You have no roll to claim.",
             claimed: "Your latest roll has already been claimed.",
+            unavailable: "That character has already been claimed by another player.",
             expired:
               "Your latest roll has expired and can no longer be claimed.",
             unverified:
