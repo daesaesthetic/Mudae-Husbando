@@ -1,0 +1,871 @@
+# MUDAE HUSBANDO V2
+# MILESTONE 3.1 — BUG FIXES & CHARACTER UX CORRECTION
+# AUTHORITATIVE IMPLEMENTATION PROMPT
+
+You are a NEW Replit Agent taking ownership of the EXISTING Mudae Husbando V2 repository.
+
+The repository is already implemented through Milestone 3.
+
+Your task is to perform a focused corrective milestone.
+
+DO NOT redesign the bot.
+
+DO NOT replace existing architecture.
+
+DO NOT recreate existing systems.
+
+DO NOT begin Milestone 4.
+
+The purpose of this milestone is to fix the currently observed UX and developer-mode issues while preserving all validated gameplay.
+
+==================================================
+CURRENT VALIDATED STATE
+==================================================
+
+The following functionality has been manually tested and is currently working:
+
+/roll
+- Works as expected.
+
+/claim
+- Works as expected.
+
+/roll → Claim Character
+- Works as expected.
+- Another user can claim the roll.
+- First successful claimant wins.
+
+/collection
+- Works as expected.
+
+/collection pagination
+- Previous/Next page behavior works as expected.
+
+/profile
+- Works as expected.
+
+Do NOT break any of these systems.
+
+==================================================
+CURRENT ISSUES TO FIX
+==================================================
+
+There are THREE primary issues.
+
+1. Character-facing commands require canonical character IDs.
+2. Developer mode does not properly disable after being toggled OFF.
+3. Non-character-card Discord responses are visually too simplistic.
+
+There is also a character-card presentation improvement to perform.
+
+==================================================
+ISSUE 1 — CANONICAL CHARACTER ID UX
+==================================================
+
+CURRENT PROBLEM:
+
+The following commands currently require a canonical character ID:
+
+- /search
+- /favorite
+- /wishlist
+
+This is not acceptable as the normal player-facing UX.
+
+Players should be able to search for characters by human-readable character name.
+
+Canonical character IDs must remain an INTERNAL database identity.
+
+Do NOT remove character IDs from the database.
+
+Do NOT replace canonical IDs.
+
+Instead:
+
+USER INPUT
+    ↓
+character name / alias / search text
+    ↓
+character resolution
+    ↓
+canonical character ID
+    ↓
+existing database operation
+
+==================================================
+SEARCH
+==================================================
+
+/search must accept human-readable search input.
+
+Examples:
+
+/search character:Gojo
+
+/search character:Naruto
+
+/search character:Kakashi
+
+The input should support:
+
+- character names
+- partial names
+- aliases
+- series
+- case-insensitive matching
+- leading/trailing whitespace
+- repeated whitespace
+
+Preserve the existing verified-only rule.
+
+Search MUST continue to exclude:
+
+- pending characters
+- rejected characters
+- deprecated characters
+
+Only:
+
+status = 'verified'
+
+characters may appear in normal player search.
+
+Preserve the current result limit unless there is a compelling reason to change it.
+
+==================================================
+FAVORITE
+==================================================
+
+/favorite must accept a human-readable character name.
+
+Example:
+
+/favorite character:Gojo
+
+The implementation should:
+
+1. Normalize the user input.
+2. Resolve it against the verified character catalog.
+3. Obtain the canonical character ID.
+4. Confirm the user owns that character.
+5. Toggle the existing favorite state.
+
+The database must continue to use:
+
+character_id
+
+internally.
+
+Do NOT return to exact-name-based database updates.
+
+Do NOT create a new ownership row when favoriting.
+
+Duplicate ownership must continue to work through quantity.
+
+If the character cannot be resolved, return a clean player-facing message.
+
+If the character exists but the user does not own it, return a clean ownership error.
+
+If multiple characters could reasonably match the input, do NOT arbitrarily select one.
+
+Instead, provide a disambiguation response or require a sufficiently specific selection.
+
+==================================================
+WISHLIST
+==================================================
+
+/wishlist must accept human-readable character names.
+
+Example:
+
+/wishlist character:Gojo
+
+Resolve:
+
+name/alias input
+    ↓
+canonical character
+    ↓
+verified validation
+    ↓
+existing wishlist toggle
+
+Wishlist MUST remain ownership-independent.
+
+A user may wishlist a character they do not own.
+
+Unverified characters must remain ineligible for normal wishlist operations.
+
+Do NOT create a duplicate wishlist row.
+
+==================================================
+CHARACTER RESOLUTION
+==================================================
+
+If practical within the existing architecture, create a small reusable character-resolution helper/service.
+
+Conceptually:
+
+resolveCharacter(input)
+    ↓
+verified character
+    ↓
+character ID
+
+This should be reused by:
+
+- /search where appropriate
+- /favorite
+- /wishlist
+
+Do NOT duplicate slightly different name-resolution logic across commands.
+
+However:
+
+DO NOT perform a broad repository refactor.
+
+Keep the change focused.
+
+==================================================
+AMBIGUOUS CHARACTER INPUT
+==================================================
+
+If two or more characters can match a user input:
+
+Do NOT silently choose one.
+
+Example:
+
+/favorite character:Alex
+
+If multiple verified characters match:
+
+Return a clean response asking the user to narrow the search.
+
+Where practical, show enough information to distinguish them:
+
+Character Name
+Series
+
+Do not expose database IDs as the normal UX.
+
+==================================================
+ISSUE 2 — DEVELOPER MODE TOGGLE BUG
+==================================================
+
+CURRENT PROBLEM:
+
+/developer can be enabled.
+
+However, toggling it back OFF does not reliably restore normal roll restrictions.
+
+This is a functional bug.
+
+Developer mode OFF MUST immediately restore normal gameplay restrictions.
+
+Expected behavior:
+
+Developer Mode OFF
+    ↓
+normal /roll behavior
+
+Developer Mode ON
+    ↓
+developer roll bypass
+
+Developer Mode OFF
+    ↓
+normal /roll behavior again
+
+The state must not remain active after being turned off.
+
+==================================================
+DEVELOPER MODE RULES
+==================================================
+
+Preserve the existing developer authorization architecture.
+
+Developer access must remain based on the configured Discord user-ID allowlist.
+
+Do NOT:
+
+- hardcode developer IDs
+- use usernames
+- use display names
+- use Discord roles as the authorization source
+- grant developer access globally
+
+The developer bypass must remain scoped to the authorized developer.
+
+==================================================
+TOGGLE TEST
+==================================================
+
+This exact sequence MUST work:
+
+1. Developer Mode OFF.
+2. Attempt /roll normally.
+3. Developer Mode ON.
+4. Perform multiple /roll commands without normal roll restrictions.
+5. Developer Mode OFF.
+6. Immediately attempt another /roll.
+7. Normal roll restrictions MUST now apply.
+
+Do not rely on a process restart to clear the state.
+
+The OFF operation itself must clear the active developer state.
+
+==================================================
+DEVELOPER MODE IMPLEMENTATION
+==================================================
+
+Inspect the existing implementation before modifying it.
+
+Find exactly where developer mode affects /roll.
+
+Do not create a second roll path.
+
+Do not duplicate roll generation.
+
+The preferred behavior is:
+
+/roll
+    ↓
+developer authorization/state check
+    ↓
+if developer mode ON:
+    bypass only the relevant roll restriction
+    ↓
+normal roll creation path
+
+if developer mode OFF:
+    normal restriction
+    ↓
+normal roll creation path
+
+The actual roll must remain persistent.
+
+The character must still come from the verified catalog.
+
+Developer mode must NOT:
+
+- auto-claim
+- bypass verification
+- bypass ownership logic
+- alter claim transactions
+- modify character data
+- grant ownership
+
+==================================================
+DEVELOPER MODE TESTS
+==================================================
+
+Add automated tests covering:
+
+- authorized developer can enable mode
+- authorized developer can disable mode
+- disabled mode actually returns false/inactive
+- developer mode is scoped to the correct user
+- another user cannot inherit developer mode
+- developer mode ON bypasses the intended roll restriction
+- developer mode OFF restores the intended restriction
+- restarting the process does not accidentally enable developer mode
+- unauthorized users cannot enable developer mode
+
+If the current test architecture uses isolated rules instead of live Discord interactions, test the underlying developer-mode state logic.
+
+==================================================
+ISSUE 3 — DISCORD PRESENTATION
+==================================================
+
+CURRENT PROBLEM:
+
+Most commands currently render in very simplistic text.
+
+The character card is the exception and already has a structured presentation.
+
+The current character card is approximately:
+
+**Character name · #1**
+
+[description]
+
+**Series      Rarity      Value**
+
+**Verified catalog • Claim before this roll expires**
+
+[Claim Character]
+
+The character card itself should be preserved conceptually.
+
+However, the rest of the player-facing commands should receive a consistent Discord presentation layer.
+
+==================================================
+PRESENTATION SCOPE
+==================================================
+
+Improve the presentation of:
+
+- /collection
+- /profile
+- /search
+- /favorite
+- /wishlist
+- /developer
+
+Use Discord embeds where appropriate.
+
+The goal is NOT a massive visual redesign.
+
+The goal is consistency.
+
+Use the existing presentation.ts architecture where possible.
+
+Do not duplicate embed-building logic throughout client.ts.
+
+==================================================
+COLLECTION PRESENTATION
+==================================================
+
+/collection should use a structured embed.
+
+It should clearly display:
+
+- player name
+- current page
+- total pages
+- unique character count
+- collection entries
+- quantity
+- favorite indicator where appropriate
+
+Pagination buttons should remain functional.
+
+Do NOT change the existing page size unless necessary.
+
+Do NOT break user-scoped pagination.
+
+Empty collections should still provide a clean /roll guidance message.
+
+==================================================
+PROFILE PRESENTATION
+==================================================
+
+/profile should use a structured embed.
+
+Clearly display:
+
+- player/display name
+- unique characters
+- total copies
+- favorites
+- wishlist
+- claims
+- rolls
+- currency
+
+Preserve the current statistics.
+
+Do not change their underlying meanings.
+
+==================================================
+SEARCH PRESENTATION
+==================================================
+
+/search should use a structured embed or embeds.
+
+Each result should clearly communicate:
+
+- character name
+- series
+- rarity
+- value
+- verified status where useful
+
+Do not expose database implementation details.
+
+Do not expose canonical character IDs unless there is a genuine internal/developer reason.
+
+Search results must remain verified-only.
+
+==================================================
+FAVORITE PRESENTATION
+==================================================
+
+/favorite should return a clean structured response indicating:
+
+- character
+- action performed
+- resulting favorite state
+
+Examples conceptually:
+
+★ Added Gojo to favorites.
+
+or:
+
+☆ Removed Gojo from favorites.
+
+Use the actual project presentation style.
+
+==================================================
+WISHLIST PRESENTATION
+==================================================
+
+/wishlist should similarly communicate:
+
+- character
+- added/removed state
+
+Example conceptually:
+
+♡ Added Gojo to your wishlist.
+
+or:
+
+♡ Removed Gojo from your wishlist.
+
+Do not expose database IDs.
+
+==================================================
+DEVELOPER PRESENTATION
+==================================================
+
+/developer should use a structured embed or otherwise polished presentation.
+
+Clearly show:
+
+Developer Mode: ON
+
+or:
+
+Developer Mode: OFF
+
+Make it obvious when the developer bypass is active.
+
+The response should not expose secret configuration.
+
+==================================================
+CHARACTER CARD
+==================================================
+
+Do NOT fundamentally redesign the character card.
+
+Preserve its current information:
+
+- character name
+- description
+- series
+- rarity
+- value
+- verified catalog indicator
+- expiration/claim guidance
+- Claim Character button
+
+However, you MAY improve its visual presentation using the same embed/presentation system as the other commands.
+
+The goal is for the character card and the rest of the bot to feel like the same application.
+
+Do NOT change claim behavior.
+
+==================================================
+PRESENTATION ARCHITECTURE
+==================================================
+
+The existing:
+
+artifacts/api-server/src/bot/presentation.ts
+
+should remain the preferred location for reusable Discord presentation helpers.
+
+If new helpers are needed, add them there or in a focused presentation module.
+
+Avoid putting large embed-building blocks directly inside client.ts.
+
+Do NOT refactor the entire Discord command handler.
+
+==================================================
+DATABASE PROTECTION
+==================================================
+
+Do NOT change the existing database architecture.
+
+These tables remain authoritative:
+
+mudae_characters
+mudae_users
+mudae_collections
+mudae_wishlists
+mudae_rolls
+
+Do NOT introduce:
+
+- another character table
+- another collection table
+- another player table
+- another wishlist system
+- another favorite system
+
+Canonical character IDs remain the internal identity.
+
+==================================================
+MILESTONE 2 PROTECTION
+==================================================
+
+The following must remain unchanged in behavior:
+
+/roll
+
+/claim
+
+Claim Character button
+
+First-claim-wins
+
+Claim by another user
+
+Roll expiration
+
+Verified-only character selection
+
+Persistent roll records
+
+Transactional claim behavior
+
+Ownership quantities
+
+PostgreSQL persistence
+
+Developer mode must not weaken any of these except the explicitly authorized roll-limit bypass.
+
+==================================================
+MILESTONE 3 PROTECTION
+==================================================
+
+Preserve:
+
+- collection pagination
+- stable collection ordering
+- unique character counts
+- total-copy counts
+- verified-only search
+- canonical character identity
+- wishlist ownership independence
+- favorite ownership validation
+
+==================================================
+AUTOMATED TEST REQUIREMENTS
+==================================================
+
+At minimum add/maintain tests for:
+
+CHARACTER RESOLUTION
+
+- exact name
+- partial name
+- alias
+- case-insensitive input
+- whitespace normalization
+- unverified character rejection
+- ambiguous match handling
+- no-match handling
+
+FAVORITE
+
+- favorite by name
+- unfavorite by name
+- owned character
+- unowned character
+- duplicate quantity behavior
+- invalid character
+
+WISHLIST
+
+- add by name
+- remove by name
+- duplicate prevention
+- unverified rejection
+- unowned character allowed
+
+DEVELOPER MODE
+
+- authorized ON
+- authorized OFF
+- OFF actually disables bypass
+- unauthorized rejection
+- per-user state isolation
+- normal restriction restored after OFF
+
+PRESENTATION
+
+Where practical, test presentation helpers without requiring a live Discord connection.
+
+Do not create an unnecessarily large test framework.
+
+==================================================
+LIVE DISCORD VALIDATION
+==================================================
+
+After implementation, perform live Discord testing if the environment contains the required credentials.
+
+Do NOT claim live validation if credentials are unavailable.
+
+Test:
+
+### Character commands
+
+/search by name
+
+/search by alias
+
+/favorite by name
+
+/wishlist by name
+
+### Developer mode
+
+/developer ON
+
+multiple /roll commands
+
+/developer OFF
+
+attempt /roll again
+
+Confirm normal roll restrictions return.
+
+### Existing gameplay
+
+/roll
+
+claim by another user
+
+/claim
+
+/collection
+
+pagination
+
+/profile
+
+==================================================
+SECRETS
+==================================================
+
+Never print or expose:
+
+DISCORD_TOKEN
+
+database credentials
+
+developer allowlist values
+
+other environment secrets
+
+Do not write secrets into source code.
+
+==================================================
+OUT OF SCOPE
+==================================================
+
+Do NOT implement:
+
+- AI
+- economy
+- trading
+- marketplace
+- achievements
+- events
+- advanced rarity systems
+- new character import systems
+- scraping
+- Mudae API integration
+- database migration framework
+- Drizzle migration
+- broad Discord architecture rewrite
+- new player system
+- new collection system
+
+This is a correction and UX milestone only.
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+Before declaring success, run:
+
+- TypeScript typecheck
+- API build
+- automated tests
+- formatting validation if available
+- health endpoint if available
+
+Then report exactly what passed.
+
+Do not claim anything was tested if it was not.
+
+==================================================
+FINAL RESPONSE FORMAT
+==================================================
+
+Return:
+
+# Milestone 3.1 Implementation Summary
+
+# Character Resolution Changes
+
+# Favorite Changes
+
+# Wishlist Changes
+
+# Developer Mode Fix
+
+# Presentation Changes
+
+# Character Card Changes
+
+# Files Added
+
+# Files Modified
+
+# Database Changes
+
+# Automated Tests
+
+# Live Discord Testing
+
+# Validation Results
+
+# Remaining Known Issues
+
+# Out-of-Scope Items
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+This is a focused corrective milestone.
+
+The current repository is authoritative.
+
+Milestone 2 gameplay is protected.
+
+Milestone 3 collection/player architecture is protected.
+
+Fix the observed problems.
+
+Do not invent new architecture.
+
+Do not expose canonical IDs as the normal player experience.
+
+Do not leave developer mode partially active after OFF.
+
+Do not claim validation that was not actually performed.
+
+Inspect first.
+
+Implement minimally.
+
+Test deliberately.
+
+Preserve everything that already works.
