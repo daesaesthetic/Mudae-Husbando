@@ -6,5 +6,5 @@
     "types": ["node"],
     "noEmit": false
   },
-  "include": ["src/bot/catalog.ts", "src/bot/database.ts", "src/bot/rules.ts", "tests/**/*.ts"]
+  "include": ["src/bot/catalog.ts", "src/bot/database.ts", "src/bot/developer.ts", "src/bot/rules.ts", "tests/**/*.ts"]
 }

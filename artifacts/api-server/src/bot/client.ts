@@ -7,9 +7,16 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { GameDatabase } from "./database";
+import {
+  isDeveloperModeEnabled,
+  toggleDeveloperMode,
+} from "./developer.js";
 import { characterCard, collectionPage } from "./presentation";
 
 const commands = [
+  new SlashCommandBuilder()
+    .setName("developer")
+    .setDescription("Toggle authorized developer testing tools"),
   new SlashCommandBuilder()
     .setName("roll")
     .setDescription("Roll a verified character"),
@@ -114,7 +121,27 @@ export async function startDiscordBot() {
         );
         return;
       }
+      if (interaction.commandName === "developer") {
+        const enabled = toggleDeveloperMode(interaction.user.id);
+        if (enabled === null)
+          return interaction.reply({
+            content: "You do not have permission to use developer tools.",
+            ephemeral: true,
+          });
+        return interaction.reply({
+          content: [
+            "**DEVELOPER MODE**",
+            `Status: ${enabled ? "ON" : "OFF"}`,
+            `Unlimited Rolls: ${enabled ? "ENABLED" : "DISABLED"}`,
+          ].join("\n"),
+          ephemeral: true,
+        });
+      }
       if (interaction.commandName === "roll") {
+        // The current roll implementation has no cooldown or availability
+        // restriction. Keep this check at the integration point so a future
+        // normal restriction can be bypassed only for this developer.
+        const developerMode = isDeveloperModeEnabled(interaction.user.id);
         const character = await database.getRandomVerified();
         if (!character)
           return interaction.reply(

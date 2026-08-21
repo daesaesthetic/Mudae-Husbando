@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import pg from "pg";
 import { GameDatabase } from "../src/bot/database.js";
+import {
+  isAuthorizedDeveloper,
+  isDeveloperModeEnabled,
+  resetDeveloperModes,
+  toggleDeveloperMode,
+} from "../src/bot/developer.js";
 import { normalizePagination, normalizeSearchQuery } from "../src/bot/rules.js";
 
 type QueryResult = { rows: Record<string, unknown>[]; rowCount: number };
@@ -111,5 +117,25 @@ describe("claim transaction foundation", () => {
     assert.equal(results.filter((result) => typeof result === "object").length, 1);
     assert.equal(results.filter((result) => result === "claimed").length, 1);
     assert.equal(pool.claims.length, 1);
+  });
+});
+
+describe("developer authorization and mode", () => {
+  it("recognizes authorized IDs and rejects unauthorized or missing configuration", () => {
+    assert.equal(isAuthorizedDeveloper("dev-a", "dev-a, dev-b"), true);
+    assert.equal(isAuthorizedDeveloper("dev-b", "dev-a, dev-b"), true);
+    assert.equal(isAuthorizedDeveloper("user", "dev-a, dev-b"), false);
+    assert.equal(isAuthorizedDeveloper("dev-a", undefined), false);
+  });
+
+  it("toggles mode per authorized developer without affecting another user", () => {
+    resetDeveloperModes();
+    assert.equal(toggleDeveloperMode("dev-a", "dev-a"), true);
+    assert.equal(isDeveloperModeEnabled("dev-a"), true);
+    assert.equal(isDeveloperModeEnabled("dev-b"), false);
+    assert.equal(toggleDeveloperMode("dev-a", "dev-a"), false);
+    assert.equal(isDeveloperModeEnabled("dev-a"), false);
+    assert.equal(toggleDeveloperMode("user", "dev-a"), null);
+    resetDeveloperModes();
   });
 });
