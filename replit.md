@@ -37,7 +37,7 @@ An actual Discord character-collection game with a verified-only catalog and per
 
 ## Product
 
-The first playable slice includes verified character rolls, claiming, collections, profiles, catalog search, wishlists, and favorites.
+The first playable slice includes verified character rolls, persistent expiring roll records, a Discord claim button, transactional claiming, collections, profiles, catalog search, wishlists, and favorites.
 
 ## User preferences
 
@@ -47,6 +47,7 @@ The first playable slice includes verified character rolls, claiming, collection
 
 - The API workflow runs both the health endpoint and Discord bot.
 - Discord slash commands are registered globally during startup and may take a short time to appear.
+- `ROLL_EXPIRATION_MS` optionally controls claim duration; it defaults to 15 minutes.
 
 ## Pointers
 

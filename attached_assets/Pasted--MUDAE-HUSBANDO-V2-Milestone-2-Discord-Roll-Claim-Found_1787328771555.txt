@@ -1,0 +1,1008 @@
+# MUDAE HUSBANDO V2
+
+## Milestone 2 — Discord Roll & Claim Foundation
+
+The **Verified Character Foundation** is complete and validated.
+
+Do NOT rebuild it.
+
+Do NOT replace its architecture.
+
+Do NOT introduce AI yet.
+
+Your task is to build the next milestone on top of the existing foundation:
+
+> **Discord `/roll` → verified character card → transactional `/claim` → persistent ownership**
+
+---
+
+# 1. CURRENT FOUNDATION
+
+The project already has:
+
+* TypeScript project structure
+* Migration-ready SQLite
+* Persistent database at:
+  `data/mudae.sqlite`
+* Character schema separating:
+
+  * identity
+  * source
+  * verification
+  * gameplay
+  * metadata
+* Character statuses:
+
+  * `verified`
+  * `pending`
+  * `rejected`
+  * `deprecated`
+* Verified-only roll eligibility
+* Character search by:
+
+  * name
+  * series
+  * aliases
+* 50-character curated seed catalog
+* Real existing characters only
+* Configurable rarity table
+* Character repository
+* Roll engine
+* Database migrations
+* Foundation tests
+* TypeScript typecheck
+
+Important existing files include:
+
+* `src/database/database.ts`
+* `src/services/character-repository.ts`
+* `src/services/roll-engine.ts`
+* `src/catalog/seed.ts`
+* `tests/foundation.test.ts`
+* `package.json`
+
+Validation has already passed:
+
+```
+npm run typecheck
+npm test
+npm run seed
+```
+
+The seed operation produces:
+
+```
+50 verified characters
+```
+
+---
+
+# 2. DO NOT REOPEN THE CHARACTER PROBLEM
+
+The most important architectural decision in this project remains:
+
+> **The database defines character truth.**
+
+The roll engine already enforces verified-only eligibility.
+
+Preserve that behavior.
+
+Never allow the Discord layer to:
+
+* invent characters
+* construct fake character records
+* select pending characters
+* select rejected characters
+* select deprecated characters
+* ask an AI model to determine whether a character exists
+* substitute an unknown character with an original character
+
+The Discord layer should consume the existing verified character foundation.
+
+---
+
+# 3. MILESTONE OBJECTIVE
+
+Implement the first real Discord gameplay loop:
+
+```text
+/roll
+  ↓
+existing Roll Engine
+  ↓
+verified Character
+  ↓
+persistent Roll Record
+  ↓
+Discord Character Card
+  ↓
+[ Claim Character ]
+  ↓
+transactional Claim Service
+  ↓
+persistent Ownership
+```
+
+This milestone is considered complete only when a real Discord user can:
+
+1. Run `/roll`
+2. Receive a verified character
+3. See the character in a polished Discord embed
+4. Click `Claim Character`
+5. Successfully claim it
+6. Have ownership persisted in SQLite
+7. Restart the bot
+8. Still have the character in their collection
+
+---
+
+# 4. DISCORD BOT INITIALIZATION
+
+Add the Discord bot layer using the project's existing TypeScript/Node environment.
+
+Use an appropriate Discord library such as `discord.js` if that is already the project's intended dependency.
+
+Do not introduce unnecessary frameworks.
+
+The bot must:
+
+* authenticate using a Replit Secret/environment variable
+* never hardcode the Discord token
+* log in safely
+* handle startup errors clearly
+* register the `/roll` command
+* handle button interactions
+* shut down gracefully where practical
+
+Document the required Replit Secret.
+
+Do not print secrets to logs.
+
+---
+
+# 5. `/roll`
+
+Implement:
+
+```
+/roll
+```
+
+The command must use the **existing `roll-engine.ts`**.
+
+Do not duplicate the roll algorithm inside the Discord command.
+
+The intended flow is:
+
+```text
+Discord /roll
+    ↓
+Roll service / engine
+    ↓
+verified Character
+    ↓
+create persistent Roll Record
+    ↓
+format Character Card
+    ↓
+Discord reply
+```
+
+The command must never independently query arbitrary character records.
+
+The existing verified-only roll restrictions remain authoritative.
+
+---
+
+# 6. PERSISTENT ROLL RECORD
+
+Introduce a database-backed roll/session record.
+
+The purpose is to give every Discord roll a unique identity and persistent claim state.
+
+A roll record should contain information equivalent to:
+
+* internal roll ID
+* Discord user ID
+* Discord guild/server ID
+* character ID
+* rolled timestamp
+* expiration timestamp
+* claimed state
+* claimed-by user ID if claimed
+* claim timestamp if claimed
+
+Use appropriate names/types for the actual schema.
+
+Do not blindly copy this field list if the existing architecture suggests a better design.
+
+The important requirements are:
+
+### Every roll must be uniquely identifiable.
+
+### Every roll must have a claim state.
+
+### The bot must be able to determine whether a roll is still claimable.
+
+### Roll state must survive a bot restart.
+
+---
+
+# 7. ROLL EXPIRATION
+
+Design the roll record so it can expire.
+
+For the initial implementation, choose a reasonable expiration period and make it configurable.
+
+Do not permanently hardcode the expiration duration throughout the code.
+
+For example, configuration could eventually support:
+
+```
+ROLL_EXPIRATION_MS
+```
+
+The exact initial duration can be selected sensibly.
+
+If a user tries to claim an expired roll:
+
+* do not award the character
+* explain that the roll has expired
+* do not corrupt ownership data
+
+---
+
+# 8. CHARACTER CARD
+
+Create a reusable character-card/embed formatter.
+
+Do NOT construct the embed entirely inside `/roll`.
+
+Create a reusable presentation function/service.
+
+The previous prototype's visual design should be used as the starting point.
+
+The previous card contained:
+
+* Roll count
+* Character name
+* Character number
+* Description
+* Series
+* Rarity
+* Value
+* Artwork
+* Roll attribution
+* Claim button
+
+Preserve the general feel.
+
+The new version should be cleaner and Discord-native.
+
+A conceptual example:
+
+```
+You rolled 1 character.
+Rolls remaining: X
+
+┌────────────────────────────────────┐
+│ Character Name · #XXXX             │
+│                                    │
+│ Verified character description     │
+│                                    │
+│ Series        Rarity        Value  │
+│ Example       Rare          130    │
+│                                    │
+│ Mudae Roll • Claim with /claim     │
+└────────────────────────────────────┘
+
+[ Claim Character ]
+```
+
+The exact styling is flexible.
+
+---
+
+# 9. IMPORTANT: CARD DATA MUST COME FROM THE DATABASE
+
+The embed must display data from the verified Character record.
+
+For example:
+
+* name → database
+* series → database
+* aliases → database where appropriate
+* rarity → database/game configuration
+* value → database/game configuration
+* image → database
+* description → verified character data
+
+Do not ask an AI model to generate the identity information.
+
+Do not invent missing character information.
+
+If a field is unavailable, display an appropriate fallback rather than fabricating it.
+
+---
+
+# 10. CLAIM BUTTON
+
+The character card should contain a Discord button:
+
+```
+Claim Character
+```
+
+The button must carry a unique identifier that lets the bot determine exactly which roll is being claimed.
+
+Do not rely solely on:
+
+* character name
+* message text
+* embed text
+* Discord message content
+
+Use a persistent roll ID or equivalent authoritative identifier.
+
+---
+
+# 11. TRANSACTIONAL CLAIMING
+
+This is one of the most important requirements of this milestone.
+
+Claiming must be **atomic and race-safe**.
+
+Consider:
+
+```text
+User A clicks Claim
+User B clicks Claim
+          ↓
+     same roll
+          ↓
+    only one wins
+```
+
+It must be impossible for both users to receive the same roll.
+
+The database transaction should perform the necessary checks and writes atomically.
+
+Conceptually:
+
+```text
+BEGIN TRANSACTION
+
+Check roll exists
+Check roll has not expired
+Check roll is not already claimed
+Check character is still eligible
+Create ownership record
+Mark roll as claimed
+
+COMMIT
+```
+
+If any check fails:
+
+```text
+ROLLBACK
+```
+
+Do not perform the ownership insert and roll update as unrelated asynchronous operations.
+
+---
+
+# 12. OWNERSHIP MODEL
+
+Create a persistent ownership/collection model.
+
+At minimum, ownership must associate:
+
+* Discord user ID
+* character ID
+* acquisition timestamp
+
+Design the schema to support future duplicate ownership.
+
+Do not assume that a user can only own a character once.
+
+The architecture should be capable of supporting:
+
+* duplicates
+* favorite status
+* acquisition history
+* future trading
+* future upgrades
+
+Do not implement trading yet.
+
+---
+
+# 13. DUPLICATES
+
+For this milestone, users should be able to obtain duplicate copies of characters unless the existing game design explicitly prevents it.
+
+Do not accidentally use:
+
+```
+UNIQUE(user_id, character_id)
+```
+
+if that would prevent future duplicate mechanics.
+
+Prefer a model that can represent:
+
+```
+User
+  ↓
+Character
+  ↓
+Ownership / acquisition records
+```
+
+or another clean design capable of representing multiple copies.
+
+If you choose a quantity-based model instead, make sure the acquisition operation remains transactional.
+
+Document the decision.
+
+---
+
+# 14. `/claim`
+
+Implement:
+
+```
+/claim
+```
+
+if appropriate for the command architecture.
+
+The button should be the primary convenient claim mechanism.
+
+`/claim` should allow a user to claim their active/eligible roll when possible.
+
+The command must not allow a user to claim somebody else's roll.
+
+It must verify:
+
+* roll exists
+* roll belongs to the appropriate user where required
+* roll has not expired
+* roll has not already been claimed
+
+Do not trust user-supplied character IDs without validating them against persistent roll state.
+
+---
+
+# 15. CLAIM OWNERSHIP RULE
+
+A roll belongs to the user who rolled it.
+
+Another user must not be able to steal it by guessing the roll ID or interacting with its button.
+
+The claim system must enforce ownership at the application/database level.
+
+Do not rely only on Discord UI behavior.
+
+---
+
+# 16. BUTTON RESTART BEHAVIOR
+
+The bot may restart after a character has been rolled.
+
+The claim system should still be able to process an existing valid claim button after restart.
+
+Therefore:
+
+* do not store critical claim state only in memory
+* do not rely on an in-memory map of roll IDs
+* reconstruct all necessary state from SQLite
+
+If Discord button custom IDs need to encode a roll identifier, use that identifier safely.
+
+---
+
+# 17. EDGE CASES
+
+Handle at minimum:
+
+### Already claimed
+
+Return a clear response.
+
+Do not award another copy.
+
+### Expired
+
+Reject the claim.
+
+### Invalid roll ID
+
+Reject safely.
+
+### Wrong user
+
+Reject safely.
+
+### Character no longer verified
+
+Do not award it.
+
+### Database error
+
+Do not partially award the character.
+
+### Duplicate button click
+
+Only the first successful transaction should succeed.
+
+### Bot restart
+
+Persistent rolls and ownership should remain consistent.
+
+### Missing image
+
+Display the card without an image or with a safe fallback.
+
+### Missing description
+
+Use a neutral fallback.
+
+Never invent information to fill missing fields.
+
+---
+
+# 18. DISCORD RESPONSE HANDLING
+
+Discord interactions must be acknowledged correctly.
+
+Avoid:
+
+* "This interaction failed"
+* double replies
+* editing nonexistent messages
+* attempting to reply after an interaction has already been acknowledged
+* unhandled promise rejections
+
+Use:
+
+* `reply`
+* `deferReply`
+* `editReply`
+* `deferUpdate`
+* `update`
+
+appropriately.
+
+Button interactions should provide immediate feedback.
+
+Ephemeral responses are appropriate for private claim errors where useful.
+
+---
+
+# 19. COMMAND ORGANIZATION
+
+Do not create one enormous Discord file.
+
+Use a structure appropriate to the existing project.
+
+For example:
+
+```
+src/
+  commands/
+    roll.ts
+    claim.ts
+
+  services/
+    roll-service.ts
+    claim-service.ts
+
+  discord/
+    embeds/
+    buttons/
+
+  database/
+    ...
+```
+
+The exact structure may differ.
+
+The important requirement is separation between:
+
+* Discord presentation
+* game logic
+* database operations
+
+---
+
+# 20. SERVICE SEPARATION
+
+Prefer:
+
+```text
+Discord command
+    ↓
+game service
+    ↓
+repository/database
+```
+
+rather than:
+
+```text
+Discord command
+    ↓
+raw SQL everywhere
+```
+
+For example:
+
+```text
+/roll
+  ↓
+RollService
+  ↓
+RollEngine
+  ↓
+CharacterRepository
+  ↓
+SQLite
+```
+
+and:
+
+```text
+Claim button
+  ↓
+ClaimService
+  ↓
+transaction
+  ↓
+OwnershipRepository
+  ↓
+SQLite
+```
+
+This will make later systems such as trading, favorites, profiles, and economy much easier to implement.
+
+---
+
+# 21. TESTING REQUIREMENTS
+
+Add tests for the new functionality.
+
+At minimum:
+
+### Roll
+
+* only verified characters can be rolled
+* roll record is created
+* roll references the correct character
+* roll belongs to the correct user
+* roll persists
+
+### Claim
+
+* valid claim succeeds
+* ownership is persisted
+* roll becomes claimed
+* second claim fails
+* wrong user fails
+* expired roll fails
+* invalid roll fails
+
+### Race condition
+
+Create a test that attempts to claim the same roll concurrently.
+
+The expected result:
+
+```text
+1 successful claim
+1 failed claim
+```
+
+Never:
+
+```text
+2 successful claims
+```
+
+### Persistence
+
+Restart/reopen the database and verify:
+
+* roll state remains correct
+* ownership remains correct
+
+---
+
+# 22. MIGRATIONS
+
+If new tables are required, create a proper sequential migration.
+
+Do not reset the database.
+
+Do not delete the existing character catalog.
+
+The existing 50 verified characters must remain intact.
+
+After migration:
+
+```
+npm run seed
+```
+
+must remain safe to run.
+
+Seed operations must continue to be idempotent/upsert-safe.
+
+---
+
+# 23. NO AI YET
+
+Do NOT implement:
+
+* AI roleplay
+* AI descriptions
+* AI character generation
+* AI character selection
+* AI natural-language search
+* AI personality systems
+
+Those belong to later milestones.
+
+The goal here is to prove that the deterministic game foundation works correctly.
+
+---
+
+# 24. NO ECONOMY YET
+
+Do NOT implement:
+
+* kakera economy
+* purchases
+* shops
+* upgrades
+* trading
+* premium systems
+
+The character's existing value field may be displayed on the card, but economic mechanics are out of scope.
+
+---
+
+# 25. NO WISHLIST/PROFILE SYSTEM YET
+
+Do not expand into:
+
+* `/profile`
+* `/wishlist`
+* `/favorite`
+* leaderboards
+* achievements
+
+unless a minimal dependency is absolutely necessary.
+
+Keep this milestone focused.
+
+---
+
+# 26. VISUAL GOAL
+
+The previous prototype's character card is the visual reference.
+
+Its strengths should be preserved:
+
+* readable character identity
+* strong embed hierarchy
+* artwork
+* rarity/value information
+* obvious claim button
+* roll context
+
+However, improve the implementation so the card is generated from the verified database rather than generated character content.
+
+Do not spend excessive development time on cosmetic perfection yet.
+
+Functionality comes first.
+
+---
+
+# 27. SECURITY
+
+Never trust Discord user input.
+
+Validate:
+
+* user IDs
+* guild IDs
+* roll IDs
+* character IDs
+* command options
+* button custom IDs
+
+Do not expose internal database errors directly to users.
+
+Do not expose:
+
+* SQLite paths
+* stack traces
+* API keys
+* Discord tokens
+* internal credentials
+
+in public Discord responses.
+
+---
+
+# 28. LOGGING
+
+Add useful logs for:
+
+* bot startup
+* command registration
+* roll creation
+* claim success
+* claim failure
+* database failures
+* unexpected Discord interaction errors
+
+Logs should contain enough information to diagnose problems without exposing secrets.
+
+---
+
+# 29. VALIDATION
+
+After implementation, run:
+
+```
+npm run typecheck
+
+npm test
+```
+
+Also run the seed command:
+
+```
+npm run seed
+```
+
+Confirm that the existing 50-character catalog remains valid.
+
+If a build/start script exists, run it as well.
+
+Report the exact results.
+
+---
+
+# 30. MANUAL DISCORD TEST
+
+After automated tests pass, provide a concise manual test checklist:
+
+```
+1. Run /roll
+2. Confirm character is one of the verified catalog entries
+3. Confirm card displays correctly
+4. Click Claim Character
+5. Confirm claim succeeds
+6. Attempt to claim again
+7. Confirm second claim fails
+8. Restart bot
+9. Verify persistent state
+10. Test a second user against another user's roll
+```
+
+Do not claim the milestone is complete until these behaviors have been validated as far as the current Replit environment permits.
+
+---
+
+# 31. DEFINITION OF DONE
+
+Milestone 2 is complete when:
+
+* Discord bot starts successfully
+* `/roll` works
+* `/roll` uses the existing verified-only roll engine
+* A persistent roll record is created
+* Character cards display correctly
+* Claim buttons work
+* `/claim` works where appropriate
+* Claims are transactional
+* Only the rightful user can claim a roll
+* Expired rolls cannot be claimed
+* Already claimed rolls cannot be claimed again
+* Ownership persists in SQLite
+* Bot restarts do not corrupt roll/ownership state
+* Concurrent claim attempts are race-safe
+* Tests pass
+* TypeScript typecheck passes
+* Existing foundation tests still pass
+* Existing 50-character catalog remains intact
+* No AI character generation exists
+* No original characters have entered the verified pool
+
+---
+
+# 32. AFTER COMPLETION
+
+Do NOT automatically continue building the next milestone.
+
+Stop after Milestone 2.
+
+Provide a report containing:
+
+### Implemented
+
+List each major feature.
+
+### Files
+
+List created/modified files.
+
+### Database
+
+Describe migrations/tables added.
+
+### Tests
+
+List the new tests.
+
+### Validation
+
+```
+npm run typecheck
+npm test
+npm run seed
+```
+
+with their actual results.
+
+### Manual Testing
+
+Explain what was tested in Discord and what remains untested.
+
+### Architectural Notes
+
+Mention any decisions that could affect future milestones.
+
+### Problems
+
+Clearly identify anything unresolved.
+
+Do not hide failures.
+
+---
+
+# FINAL ARCHITECTURAL RULE
+
+This project has three separate responsibilities:
+
+## DATABASE
+
+Defines:
+
+> **What is real.**
+
+## GAME ENGINE
+
+Defines:
+
+> **What happens.**
+
+## DISCORD UI
+
+Defines:
+
+> **How the player interacts with it.**
+
+AI will eventually define:
+
+> **How the bot expresses personality.**
+
+But AI does not define reality.
+
+For this milestone, AI is completely out of scope.
+
+Build the deterministic Discord gameplay foundation carefully and incrementally.

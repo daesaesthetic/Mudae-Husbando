@@ -5,6 +5,7 @@ const { Pool } = pg;
 
 export class GameDatabase {
   private readonly pool: pg.Pool;
+  private readonly rollExpirationMs = Number(process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000);
 
   constructor() {
     if (!process.env.DATABASE_URL) {
@@ -43,9 +44,14 @@ export class GameDatabase {
       );
       CREATE TABLE IF NOT EXISTS mudae_rolls (
         id UUID PRIMARY KEY, discord_id TEXT NOT NULL REFERENCES mudae_users(discord_id) ON DELETE CASCADE,
-        character_id INTEGER NOT NULL REFERENCES mudae_characters(id), claimed_by TEXT,
+        guild_id TEXT, character_id INTEGER NOT NULL REFERENCES mudae_characters(id), claimed_by TEXT,
+        expires_at TIMESTAMPTZ NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), claimed_at TIMESTAMPTZ
       );
+      ALTER TABLE mudae_rolls ADD COLUMN IF NOT EXISTS guild_id TEXT;
+      ALTER TABLE mudae_rolls ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+      UPDATE mudae_rolls SET expires_at = created_at + INTERVAL '15 minutes' WHERE expires_at IS NULL;
+      ALTER TABLE mudae_rolls ALTER COLUMN expires_at SET NOT NULL;
     `);
     for (const character of seedCharacters) {
       await this.pool.query(
@@ -76,28 +82,54 @@ export class GameDatabase {
     return result.rows[0] as (typeof seedCharacters[number] & { id: number }) | undefined;
   }
 
-  async createRoll(id: string, discordId: string, characterId: number) {
-    await this.pool.query("INSERT INTO mudae_rolls (id, discord_id, character_id) VALUES ($1,$2,$3)", [id, discordId, characterId]);
+  async createRoll(id: string, discordId: string, guildId: string | null, characterId: number) {
+    const expiresAt = new Date(Date.now() + this.rollExpirationMs);
+    await this.pool.query(
+      "INSERT INTO mudae_rolls (id, discord_id, guild_id, character_id, expires_at) VALUES ($1,$2,$3,$4,$5)",
+      [id, discordId, guildId, characterId, expiresAt],
+    );
     await this.pool.query("UPDATE mudae_users SET rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW() WHERE discord_id = $1", [discordId]);
+    return expiresAt;
   }
 
   async claimRoll(rollId: string, discordId: string) {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      const roll = await client.query(
-        `UPDATE mudae_rolls SET claimed_by = $2, claimed_at = NOW()
-         WHERE id = COALESCE(NULLIF($1, '')::uuid, (
-           SELECT id FROM mudae_rolls WHERE discord_id = $2 AND claimed_by IS NULL
-           ORDER BY created_at DESC LIMIT 1
-         )) AND claimed_by IS NULL AND discord_id = $2 RETURNING character_id`,
+      const roll = await client.query<{
+        id: string; discord_id: string; character_id: number; claimed_by: string | null;
+        expires_at: Date; status: string;
+      }>(
+        `SELECT r.id, r.discord_id, r.character_id, r.claimed_by, r.expires_at, c.status
+         FROM mudae_rolls r JOIN mudae_characters c ON c.id = r.character_id
+         WHERE r.id = COALESCE(NULLIF($1, '')::uuid, (
+           SELECT id FROM mudae_rolls WHERE discord_id = $2 ORDER BY created_at DESC LIMIT 1
+         )) FOR UPDATE`,
         [rollId, discordId],
       );
       if (!roll.rowCount) {
         await client.query("ROLLBACK");
-        return null;
+        return "invalid" as const;
       }
-      const characterId = roll.rows[0].character_id as number;
+      const selectedRoll = roll.rows[0];
+      if (selectedRoll.discord_id !== discordId) {
+        await client.query("ROLLBACK");
+        return "wrong-user" as const;
+      }
+      if (selectedRoll.claimed_by) {
+        await client.query("ROLLBACK");
+        return "claimed" as const;
+      }
+      if (new Date(selectedRoll.expires_at).getTime() <= Date.now()) {
+        await client.query("ROLLBACK");
+        return "expired" as const;
+      }
+      if (selectedRoll.status !== "verified") {
+        await client.query("ROLLBACK");
+        return "unverified" as const;
+      }
+      const characterId = selectedRoll.character_id;
+      await client.query("UPDATE mudae_rolls SET claimed_by = $2, claimed_at = NOW() WHERE id = $1", [selectedRoll.id, discordId]);
       await client.query(
         `INSERT INTO mudae_collections (discord_id, character_id) VALUES ($1,$2)
          ON CONFLICT (discord_id, character_id) DO UPDATE SET quantity = mudae_collections.quantity + 1`,
@@ -105,7 +137,7 @@ export class GameDatabase {
       );
       await client.query("UPDATE mudae_users SET claims_count = claims_count + 1, updated_at = NOW() WHERE discord_id = $1", [discordId]);
       await client.query("COMMIT");
-      return characterId;
+      return { status: "success" as const, characterId };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -119,6 +151,20 @@ export class GameDatabase {
       `SELECT id, name, series, rarity, value, description FROM mudae_characters WHERE id = $1 AND status = 'verified'`, [id],
     );
     return result.rows[0] as { id: number; name: string; series: string; rarity: string; value: number; description: string } | undefined;
+  }
+
+  async getRoll(rollId: string, discordId?: string) {
+    const result = await this.pool.query(
+      `SELECT r.id, r.discord_id AS "discordId", r.character_id AS "characterId", r.expires_at AS "expiresAt",
+              r.claimed_by AS "claimedBy", c.name, c.series, c.rarity, c.value, c.description
+       FROM mudae_rolls r JOIN mudae_characters c ON c.id = r.character_id
+       WHERE r.id = $1 AND ($2::text IS NULL OR r.discord_id = $2)`,
+      [rollId, discordId ?? null],
+    );
+    return result.rows[0] as {
+      id: string; discordId: string; characterId: number; expiresAt: Date; claimedBy: string | null;
+      name: string; series: string; rarity: string; value: number; description: string;
+    } | undefined;
   }
 
   async search(query: string) {

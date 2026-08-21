@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { Client, EmbedBuilder, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from "discord.js";
 import { GameDatabase } from "./database";
-
-const rarityColors: Record<string, number> = { common: 0x94a3b8, uncommon: 0x38bdf8, rare: 0xa78bfa };
+import { characterCard } from "./presentation";
 
 const commands = [
   new SlashCommandBuilder().setName("roll").setDescription("Roll a verified character"),
@@ -26,23 +25,45 @@ export async function startDiscordBot() {
     console.info(`Discord bot connected as ${ready.user.tag}`);
   });
   client.on("interactionCreate", async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isChatInputCommand() && !interaction.isButton()) return;
     try {
       await database.ensureUser(interaction.user.id, interaction.user.displayName);
+      if (interaction.isButton()) {
+        if (!interaction.customId.startsWith("claim:")) return;
+        const rollId = interaction.customId.slice("claim:".length);
+        if (!/^[0-9a-f-]{36}$/i.test(rollId)) return interaction.reply({ content: "That claim button is invalid.", ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
+        const result = await database.claimRoll(rollId, interaction.user.id);
+        const messages = {
+          success: "Character claimed and saved to your collection.",
+          claimed: "That roll has already been claimed.",
+          expired: "That roll has expired and can no longer be claimed.",
+          "wrong-user": "Only the user who rolled this character can claim it.",
+          unverified: "This character is no longer verified and cannot be claimed.",
+          invalid: "That roll could not be found.",
+        } as const;
+        await interaction.editReply(messages[typeof result === "object" ? result.status : result]);
+        return;
+      }
       if (interaction.commandName === "roll") {
         const character = await database.getRandomVerified();
         if (!character) return interaction.reply("The verified catalog is empty. Ask an administrator to add verified characters.");
         const rollId = randomUUID();
-        await database.createRoll(rollId, interaction.user.id, character.id);
-        const embed = new EmbedBuilder().setColor(rarityColors[character.rarity] ?? 0x64748b)
-          .setTitle(`${character.name} · #${character.id}`).setDescription(character.description)
-          .addFields({ name: "Series", value: character.series, inline: true }, { name: "Rarity", value: character.rarity, inline: true }, { name: "Value", value: `${character.value}`, inline: true })
-          .setFooter({ text: "Verified catalog • Claim with /claim" });
-        return interaction.reply({ embeds: [embed] });
+        await database.createRoll(rollId, interaction.user.id, interaction.guildId, character.id);
+        const roll = await database.getRoll(rollId);
+        if (!roll) return interaction.reply("The roll could not be saved. Please try again.");
+        return interaction.reply(characterCard(roll));
       }
       if (interaction.commandName === "claim") {
         const result = await database.claimRoll("", interaction.user.id);
-        return interaction.reply(result ? "Character claimed and saved to your collection." : "You have no unclaimed roll available.");
+        if (typeof result === "object") return interaction.reply("Character claimed and saved to your collection.");
+        return interaction.reply({
+          invalid: "You have no roll to claim.",
+          claimed: "Your latest roll has already been claimed.",
+          expired: "Your latest roll has expired and can no longer be claimed.",
+          "wrong-user": "Only the user who rolled this character can claim it.",
+          unverified: "This character is no longer verified and cannot be claimed.",
+        }[result]);
       }
       if (interaction.commandName === "search") {
         const results = await database.search(interaction.options.getString("query", true));
