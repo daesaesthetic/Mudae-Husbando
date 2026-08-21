@@ -1,0 +1,350 @@
+# CLAIM MECHANIC CORRECTION
+
+We found an important gameplay bug during live Discord testing.
+
+The current implementation incorrectly prevents users from claiming another user's roll.
+
+The current response:
+
+> "Only the user who rolled this character can claim it"
+
+is **incorrect for the intended Mudae-style gameplay.**
+
+## Correct Rule
+
+A character roll is publicly claimable by anyone in the server.
+
+The first user to successfully claim the roll receives the character.
+
+The user who performed `/roll` does NOT have exclusive claim rights.
+
+Example:
+
+```
+User A
+  ↓
+/roll
+  ↓
+Sasuke Uchiha appears
+  ↓
+User B clicks Claim Character
+  ↓
+User B gets Sasuke
+```
+
+If User A reaches the button first:
+
+```
+User A gets Sasuke.
+```
+
+The first successful claim wins.
+
+---
+
+# IMPORTANT DATA DISTINCTION
+
+Do NOT remove the roller's user ID from the roll record.
+
+The roll should continue to track:
+
+* `rolled_by`
+* `guild_id`
+* `character_id`
+* `rolled_at`
+* `expires_at`
+* `claimed`
+* `claimed_by`
+* `claimed_at`
+
+The important distinction is:
+
+```
+rolled_by != claimed_by
+```
+
+`rolled_by` identifies who generated the roll.
+
+`claimed_by` identifies who successfully obtained the character.
+
+They may be the same user, but they do not have to be.
+
+---
+
+# TRANSACTIONAL CLAIMING
+
+The existing transactional/race-safe claim system should be preserved.
+
+The claim transaction should now behave conceptually as:
+
+```
+BEGIN TRANSACTION
+
+Check roll exists
+Check roll has not expired
+Check roll is not already claimed
+Check character is still verified
+
+Create ownership for CURRENT CLAIMING USER
+
+Set:
+    claimed = true
+    claimed_by = CURRENT CLAIMING USER
+    claimed_at = current time
+
+COMMIT
+```
+
+The transaction must NOT require:
+
+```
+current_user == rolled_by
+```
+
+That restriction must be removed from the claim authorization logic.
+
+---
+
+# RACE CONDITION
+
+The existing race-safe behavior must remain.
+
+If two users attempt to claim simultaneously:
+
+```
+User A → claim
+User B → claim
+```
+
+Only one transaction may succeed.
+
+Expected result:
+
+```
+Winner:
+ownership created
+roll marked claimed
+
+Loser:
+"That roll has already been claimed."
+```
+
+Never allow both users to receive the character.
+
+---
+
+# CLAIM BUTTON
+
+The `Claim Character` button on a roll should be usable by any eligible user who can access that Discord message.
+
+Do not restrict the button based on the user who originally rolled the character.
+
+The button should identify the roll using the existing persistent roll ID.
+
+---
+
+# `/claim`
+
+Do not unnecessarily redesign `/claim`.
+
+If `/claim` currently means:
+
+> claim the user's latest active roll
+
+it may continue to work that way.
+
+However, its implementation must use the same underlying transactional claim service.
+
+The important distinction is:
+
+* `/claim` can target the user's own latest active roll
+* the public claim button can be used by anyone
+* the underlying claim transaction determines the actual winner
+
+Do not duplicate claim logic between `/claim` and the button.
+
+---
+
+# SECURITY
+
+The removal of the roller restriction does NOT mean claim validation should be removed.
+
+The claim service must still validate:
+
+* roll exists
+* roll is in the correct guild/context where applicable
+* roll has not expired
+* roll has not already been claimed
+* character is still verified
+* roll ID is valid
+* database transaction succeeds
+
+The current claiming user must become the owner if the transaction succeeds.
+
+---
+
+# TESTS
+
+Update the existing tests.
+
+The previous test that expects:
+
+```
+wrong user → rejected
+```
+
+must be replaced.
+
+Add/modify tests so that:
+
+### Test 1 — Roller claims own roll
+
+```
+User A rolls
+User A claims
+```
+
+Expected:
+
+```
+success
+User A owns character
+```
+
+### Test 2 — Another user claims the roll
+
+```
+User A rolls
+User B claims
+```
+
+Expected:
+
+```
+success
+User B owns character
+roll.claimed_by = User B
+roll.rolled_by = User A
+```
+
+### Test 3 — Second user loses race
+
+```
+User A rolls
+User B claims successfully
+User C attempts claim
+```
+
+Expected:
+
+```
+failure
+already claimed
+no additional ownership
+```
+
+### Test 4 — Concurrent claim
+
+Two different users attempt to claim simultaneously.
+
+Expected:
+
+```
+exactly 1 successful ownership
+exactly 1 claimed roll
+exactly 1 claimant
+```
+
+### Test 5 — Expired roll
+
+Any user attempts to claim an expired roll.
+
+Expected:
+
+```
+rejection
+```
+
+### Test 6 — Unverified character
+
+If the character becomes non-verified before claim:
+
+```
+rejection
+```
+
+Do not award the character.
+
+---
+
+# DATABASE
+
+Do not unnecessarily redesign the existing schema.
+
+The existing roll record already contains the necessary distinction between the roller and claimant.
+
+If a migration is genuinely required, create an additive migration.
+
+Do not delete or reset existing data.
+
+---
+
+# UI RESPONSE
+
+Update error messaging accordingly.
+
+Do NOT display:
+
+> "Only the user who rolled this character can claim it"
+
+because that is no longer true.
+
+For an already-claimed roll, use something like:
+
+> "That roll has already been claimed."
+
+The exact wording can remain consistent with the current bot style.
+
+---
+
+# SCOPE
+
+This is a focused gameplay correction.
+
+Do NOT add:
+
+* AI
+* economy
+* profiles
+* wishlist
+* trading
+* new catalog systems
+* unrelated refactors
+
+Preserve everything that currently works.
+
+---
+
+# VALIDATION
+
+After making the correction, run:
+
+```
+pnpm --filter @workspace/api-server run typecheck
+
+git diff --check
+
+appropriate test command
+```
+
+Confirm that all existing tests continue to pass, with the incorrect "wrong user cannot claim" expectation replaced by the correct public-claim behavior.
+
+Then report:
+
+* files changed
+* tests changed
+* validation results
+* confirmation that the claim button is now publicly claimable
+* confirmation that transactional first-claim-wins behavior remains intact
+
+Do not make any additional gameplay changes.
