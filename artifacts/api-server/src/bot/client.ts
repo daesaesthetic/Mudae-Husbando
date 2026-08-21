@@ -7,7 +7,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { GameDatabase } from "./database";
-import { characterCard } from "./presentation";
+import { characterCard, collectionPage } from "./presentation";
 
 const commands = [
   new SlashCommandBuilder()
@@ -43,10 +43,10 @@ const commands = [
   new SlashCommandBuilder()
     .setName("favorite")
     .setDescription("Toggle a collection favorite")
-    .addStringOption((o) =>
+    .addIntegerOption((o) =>
       o
-        .setName("character")
-        .setDescription("Exact character name")
+        .setName("character_id")
+        .setDescription("Canonical character ID")
         .setRequired(true),
     ),
 ].map((command) => command.toJSON());
@@ -78,6 +78,20 @@ export async function startDiscordBot() {
         interaction.user.displayName,
       );
       if (interaction.isButton()) {
+        if (interaction.customId.startsWith("collection:")) {
+          const match = /^collection:([0-9]+):([0-9]+)$/.exec(interaction.customId);
+          if (!match || match[1] !== interaction.user.id)
+            return interaction.reply({ content: "That collection page is invalid.", ephemeral: true });
+          await interaction.deferUpdate();
+          const collection = await database.collection(
+            interaction.user.id,
+            Number(match[2]),
+          );
+          await interaction.editReply(
+            collectionPage(interaction.user.displayName, collection, interaction.user.id),
+          );
+          return;
+        }
         if (!interaction.customId.startsWith("claim:")) return;
         const rollId = interaction.customId.slice("claim:".length);
         if (!/^[0-9a-f-]{36}$/i.test(rollId))
@@ -154,21 +168,16 @@ export async function startDiscordBot() {
       }
       if (interaction.commandName === "collection") {
         const collection = await database.collection(interaction.user.id);
+        if (!collection.totalItems)
+          return interaction.reply("Your collection is empty. Use /roll to find a verified character.");
         return interaction.reply(
-          collection.length
-            ? collection
-                .map(
-                  (c) =>
-                    `${c.favorite ? "★ " : ""}**${c.name}** — ${c.series} · ×${c.quantity}`,
-                )
-                .join("\n")
-            : "Your collection is empty. Use /roll to find a verified character.",
+          collectionPage(interaction.user.displayName, collection, interaction.user.id),
         );
       }
       if (interaction.commandName === "profile") {
         const profile = await database.profile(interaction.user.id);
         return interaction.reply(
-          `**${interaction.user.displayName}**\nCollection: ${profile?.collection_size ?? 0}\nClaims: ${profile?.claims_count ?? 0}\nRolls: ${profile?.rolls_used ?? 0}\nCurrency: ${profile?.currency ?? 0}`,
+          `**${interaction.user.displayName}**\nUnique Characters: ${profile?.unique_characters ?? 0}\nTotal Copies: ${profile?.total_copies ?? 0}\nFavorites: ${profile?.favorites ?? 0}\nWishlist: ${profile?.wishlist_count ?? 0}\nClaims: ${profile?.claims_count ?? 0}\nRolls: ${profile?.rolls_used ?? 0}\nCurrency: ${profile?.currency ?? 0}`,
         );
       }
       if (interaction.commandName === "wishlist") {
@@ -187,11 +196,13 @@ export async function startDiscordBot() {
       if (interaction.commandName === "favorite") {
         const favorite = await database.toggleFavorite(
           interaction.user.id,
-          interaction.options.getString("character", true),
+          interaction.options.getInteger("character_id", true),
         );
         return interaction.reply(
-          favorite === undefined
-            ? "That character is not in your collection."
+          favorite === "invalid"
+            ? "That is not a verified character ID."
+            : favorite === "unowned"
+              ? "That character is not in your collection."
             : favorite
               ? "Added to favorites."
               : "Removed from favorites.",

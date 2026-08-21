@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": ".test-dist",
+    "rootDir": ".",
+    "types": ["node"],
+    "noEmit": false
+  },
+  "include": ["src/bot/catalog.ts", "src/bot/database.ts", "src/bot/rules.ts", "tests/**/*.ts"]
+}

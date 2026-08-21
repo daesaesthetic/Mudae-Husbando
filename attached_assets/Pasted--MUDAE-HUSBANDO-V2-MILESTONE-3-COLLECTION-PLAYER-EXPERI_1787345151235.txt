@@ -1,0 +1,977 @@
+# MUDAE HUSBANDO V2
+# MILESTONE 3 — COLLECTION & PLAYER EXPERIENCE
+# AUTHORITATIVE IMPLEMENTATION PROMPT
+
+You are a NEW Replit Agent taking ownership of the EXISTING Mudae Husbando V2 repository.
+
+You are not continuing from an assumed architecture.
+
+The CURRENT repository and the completed architecture audit are the authoritative technical sources of truth.
+
+You MUST inspect the existing implementation before making changes.
+
+Do not recreate systems that already exist.
+
+Do not replace working architecture merely because you would design it differently.
+
+This milestone is an implementation milestone built on the validated Milestone 2 foundation.
+
+==================================================
+AUTHORITATIVE CURRENT ARCHITECTURE
+==================================================
+
+The current project is a pnpm TypeScript monorepo.
+
+The primary runnable application is:
+
+artifacts/api-server
+
+The current Discord game implementation uses:
+
+- discord.js
+- PostgreSQL
+- pg
+- raw SQL
+- Express for health/readiness
+- static verified character seed data
+
+The authoritative live game database implementation is:
+
+artifacts/api-server/src/bot/database.ts
+
+The Drizzle package under:
+
+lib/db
+
+is currently a scaffold and is NOT the source of truth for the game schema.
+
+Do NOT migrate the game to Drizzle during this milestone.
+
+The current character seed source is:
+
+artifacts/api-server/src/bot/catalog.ts
+
+The current Discord implementation is primarily:
+
+artifacts/api-server/src/bot/client.ts
+
+Discord presentation is:
+
+artifacts/api-server/src/bot/presentation.ts
+
+==================================================
+IMPORTANT DATABASE FACTS
+==================================================
+
+The current game database contains these important tables:
+
+mudae_characters
+mudae_users
+mudae_collections
+mudae_wishlists
+mudae_rolls
+
+Character identity:
+
+mudae_characters.id
+
+Player identity:
+
+mudae_users.discord_id
+
+Collection identity:
+
+(discord_id, character_id)
+
+Collection duplicates are represented by:
+
+mudae_collections.quantity
+
+Favorites are represented by:
+
+mudae_collections.favorite
+
+Wishlist entries are represented by:
+
+mudae_wishlists
+
+Roll identity:
+
+mudae_rolls.id
+
+The semantic equivalent of rolled_by is:
+
+mudae_rolls.discord_id
+
+There is intentionally no literal rolled_by column.
+
+Do NOT rename or redesign this during this milestone.
+
+==================================================
+MILESTONE 2 IS STABLE
+==================================================
+
+The following gameplay has already been manually validated in live Discord testing:
+
+- /roll
+- verified-only character selection
+- persistent rolls
+- character cards
+- public Claim Character buttons
+- /claim
+- public first-claim-wins behavior
+- claiming by a user other than the roller
+- transactional claiming
+- duplicate ownership
+- roll expiration
+- PostgreSQL persistence
+- Discord startup and command registration
+
+The core gameplay rule is:
+
+THE ROLLER DOES NOT OWN THE ROLL.
+
+A roll is publicly claimable.
+
+The first successful claimant receives the character.
+
+For example:
+
+rolled_by  = User A
+claimed_by = User B
+
+is valid.
+
+DO NOT change this rule.
+
+DO NOT introduce a second claim mechanism.
+
+DO NOT bypass claimRoll().
+
+The authoritative claim implementation is:
+
+GameDatabase.claimRoll()
+
+It uses a transaction and SELECT ... FOR UPDATE to enforce first-claim-wins behavior.
+
+Milestone 3 MUST preserve this.
+
+==================================================
+CURRENT SYSTEMS THAT ALREADY EXIST
+==================================================
+
+The repository already contains:
+
+- /collection
+- /profile
+- /search
+- /wishlist
+- /favorite
+- persistent mudae_users
+- persistent mudae_collections
+- collection quantities
+- favorite state
+- wishlist state
+- verified-character search
+
+Therefore:
+
+DO NOT create duplicate versions of these systems.
+
+DO NOT create duplicate database tables.
+
+DO NOT create a second ownership model.
+
+DO NOT create a second player model.
+
+Instead, improve and harden the existing systems.
+
+==================================================
+MILESTONE 3 OBJECTIVE
+==================================================
+
+Transform the existing collection/player functionality into a reliable, scalable, and polished player experience.
+
+The milestone has FIVE primary goals:
+
+1. Harden the existing collection system.
+2. Add proper collection pagination.
+3. Clarify and improve profile statistics.
+4. Harden search/favorite/wishlist behavior.
+5. Establish automated test coverage for the gameplay foundation and new collection systems.
+
+The result should be a stable foundation for later systems such as economy, trading, advanced rarity mechanics, and AI.
+
+Those systems are OUT OF SCOPE.
+
+==================================================
+PHASE 1 — INSPECT BEFORE MODIFYING
+==================================================
+
+Before writing code:
+
+Inspect the current implementation of:
+
+- GameDatabase
+- client.ts
+- presentation.ts
+- catalog.ts
+- mudae_users
+- mudae_collections
+- mudae_characters
+- mudae_wishlists
+- mudae_rolls
+
+Confirm the current behavior of:
+
+- /roll
+- /claim
+- /collection
+- /profile
+- /search
+- /wishlist
+- /favorite
+
+Do not assume the audit is more authoritative than the source code if the two conflict.
+
+If you discover a discrepancy:
+
+- inspect the source
+- preserve working behavior
+- report the discrepancy
+- do not silently replace architecture
+
+==================================================
+PHASE 2 — COLLECTION SYSTEM
+==================================================
+
+Harden /collection.
+
+The existing collection query is based on:
+
+mudae_collections
+JOIN mudae_characters
+
+and currently returns:
+
+- character name
+- series
+- rarity
+- value
+- quantity
+- favorite state
+
+Preserve this underlying ownership model.
+
+A collection row represents ONE UNIQUE CHARACTER.
+
+quantity represents duplicate copies.
+
+Example:
+
+Character A ×1
+Character B ×4
+
+must remain two collection rows.
+
+==================================================
+COLLECTION REQUIREMENTS
+==================================================
+
+Implement proper pagination.
+
+Do NOT render an arbitrarily large collection into one Discord message.
+
+Use a deterministic ordering.
+
+Recommended baseline:
+
+ORDER BY character name, then character ID
+
+The ordering must remain stable between pages.
+
+Each page should have a reasonable fixed size.
+
+Choose an appropriate page size based on Discord constraints and readability.
+
+The implementation must support:
+
+- first page
+- next page
+- previous page
+- last page where practical
+- current page indicator
+- total page count
+
+Buttons must be disabled when navigation is impossible.
+
+Example conceptual UI:
+
+Collection — UserName
+
+Page 1 / 4
+
+★ Character A ×2
+Character B ×1
+Character C ×4
+Character D ×1
+
+[Previous] [Next]
+
+Do not blindly copy this exact visual format.
+
+Use the project's existing presentation conventions.
+
+==================================================
+COLLECTION EMPTY STATE
+==================================================
+
+A user with no characters must receive a clean response.
+
+Do not produce:
+
+- empty embeds
+- broken pagination
+- SQL errors
+- undefined values
+
+The response should clearly explain that the collection is empty and guide the player toward /roll.
+
+==================================================
+COLLECTION DATA BOUNDARY
+==================================================
+
+Keep database retrieval separate from Discord presentation where reasonably practical.
+
+Do NOT move the entire database architecture into a new framework.
+
+The existing GameDatabase is authoritative.
+
+If a focused collection service/repository abstraction materially improves maintainability, it may be introduced.
+
+However:
+
+DO NOT perform a broad architectural rewrite.
+
+The objective is to improve the current system, not replace it.
+
+==================================================
+PHASE 3 — PROFILE
+==================================================
+
+Harden /profile.
+
+The existing profile already displays:
+
+- display name
+- collection size
+- claims
+- rolls
+- currency
+
+The audit identifies an ambiguity:
+
+What exactly does "collection size" mean?
+
+Resolve this explicitly.
+
+Recommended distinction:
+
+Unique Characters
+=
+COUNT of distinct owned character rows
+
+Total Copies
+=
+SUM(quantity)
+
+Use clear labels.
+
+For example:
+
+Unique Characters: 27
+Total Copies: 41
+
+Do not call 41 "collection size" if it actually represents total copies.
+
+If appropriate, profile may also display:
+
+- total rolls
+- successful claims
+- unique characters
+- total copies
+- favorites
+- wishlist count
+
+Do not add speculative statistics that require unnecessary schema changes.
+
+Prefer deriving statistics from existing data.
+
+==================================================
+PROFILE DATA INTEGRITY
+==================================================
+
+The profile must correctly handle:
+
+- new users
+- users with no collection
+- users with duplicates
+- users with favorites
+- users with wishlist entries
+
+No null/undefined presentation bugs.
+
+==================================================
+PHASE 4 — SEARCH
+==================================================
+
+Harden /search.
+
+The existing system searches verified characters by:
+
+- name
+- series
+- aliases
+
+and limits results to 10.
+
+Preserve:
+
+WHERE status = 'verified'
+
+Search must NEVER expose unverified or pending characters through normal player search.
+
+Improve search normalization where appropriate.
+
+Search should behave sensibly for:
+
+- different capitalization
+- partial names
+- series searches
+- aliases
+- leading/trailing whitespace
+
+Do not overengineer full-text search unless the current architecture requires it.
+
+The current catalog is small, but the system is intended to grow.
+
+Avoid an implementation that becomes obviously unusable as the catalog expands.
+
+==================================================
+PHASE 5 — FAVORITES
+==================================================
+
+The existing favorite system uses:
+
+mudae_collections.favorite
+
+Preserve this architecture.
+
+However, the audit identified an important weakness:
+
+The current toggle uses exact character-name matching.
+
+Harden this so that character identity is based on character ID wherever practical.
+
+Do not rely on character name alone when the database already has a canonical character ID.
+
+The command must:
+
+- reject characters the user does not own
+- toggle favorite state correctly
+- work with the canonical character
+- handle invalid characters cleanly
+- handle duplicate ownership correctly
+- never create an ownership row accidentally
+
+If character-name input remains necessary for UX, resolve the name to a canonical character ID first.
+
+==================================================
+PHASE 6 — WISHLIST
+==================================================
+
+Wishlist already exists.
+
+Do not recreate it.
+
+Ensure it remains compatible with the improved search/character identity behavior.
+
+Preserve:
+
+- one wishlist row per user/character
+- verified-character validation
+- toggle behavior
+
+Do not allow unverified characters to be added through normal wishlist commands.
+
+Do not make wishlist ownership-dependent.
+
+A player may wishlist a character they do not own.
+
+==================================================
+PHASE 7 — AUTOMATED TEST FOUNDATION
+==================================================
+
+This is REQUIRED.
+
+The audit found that the current repository has:
+
+NO AUTOMATED TEST SUITE.
+
+Milestone 3 must establish one.
+
+Do not consider this milestone complete without automated tests.
+
+Choose a testing framework compatible with the existing pnpm TypeScript project.
+
+Do not introduce an unnecessarily complicated testing stack.
+
+The tests must cover the most important game rules.
+
+==================================================
+MANDATORY TEST COVERAGE
+==================================================
+
+At minimum test:
+
+CHARACTER:
+
+- verified characters can be selected
+- unverified characters cannot be selected
+- character uniqueness behavior
+
+ROLL:
+
+- roll creation
+- roll persistence
+- expiration
+- roller identity
+- guild ID persistence
+- character reference
+
+CLAIM:
+
+- valid claim
+- claim by the roller
+- claim by another user
+- already claimed roll
+- expired roll
+- unverified character
+- nonexistent roll
+- first-claim-wins concurrency
+
+OWNERSHIP:
+
+- first acquisition
+- duplicate acquisition
+- quantity increment
+- ownership persistence
+- wrong-user isolation
+
+COLLECTION:
+
+- empty collection
+- one character
+- multiple characters
+- duplicate quantities
+- deterministic ordering
+- pagination
+- favorites
+
+PROFILE:
+
+- new user
+- no collection
+- duplicates
+- correct unique count
+- correct total-copy count
+
+SEARCH:
+
+- name
+- series
+- alias
+- case normalization
+- verified-only filtering
+- no results
+
+WISHLIST:
+
+- add
+- remove
+- duplicate prevention
+- unverified rejection
+
+FAVORITE:
+
+- favorite owned character
+- unfavorite
+- reject unowned character
+- duplicate ownership behavior
+
+==================================================
+CLAIM CONCURRENCY TEST
+==================================================
+
+This is particularly important.
+
+The existing claim implementation uses:
+
+SELECT ... FOR UPDATE
+
+Do NOT remove this.
+
+Create an automated test that attempts two claims against the same roll concurrently.
+
+Expected result:
+
+Exactly ONE claim succeeds.
+
+Exactly ONE ownership award occurs.
+
+The other claim must fail cleanly.
+
+This test protects one of the most important gameplay rules in the entire bot.
+
+==================================================
+PHASE 8 — ROLL TRANSACTION INTEGRITY
+==================================================
+
+The audit identified another important issue:
+
+createRoll() currently inserts the roll and updates roll statistics as separate statements.
+
+This can theoretically leave:
+
+- a roll without matching statistics
+- or statistics without a corresponding roll
+
+Address this issue during this milestone if doing so can be accomplished cleanly within the existing GameDatabase architecture.
+
+Prefer making roll creation and associated roll-stat updates atomic.
+
+Do not redesign the roll system.
+
+Do not alter its user-facing behavior.
+
+Afterward, existing /roll behavior must remain unchanged.
+
+==================================================
+PHASE 9 — DATABASE SCHEMA DISCIPLINE
+==================================================
+
+The current game schema is initialized using raw SQL inside:
+
+GameDatabase.initialize()
+
+There is currently no formal migration history.
+
+DO NOT introduce a large database migration framework as part of this milestone unless absolutely required.
+
+If this milestone requires a schema change:
+
+- make it additive
+- preserve existing data
+- use the current database initialization pattern
+- make the change idempotent
+- ensure an existing database can start safely
+
+Do not migrate the live game schema to Drizzle.
+
+Do not delete or recreate existing tables.
+
+==================================================
+PHASE 10 — GUILD / USER BOUNDARIES
+==================================================
+
+The current player model is keyed by:
+
+discord_id
+
+and does not currently contain guild-specific player state.
+
+Do not invent guild-specific ownership unless explicitly required.
+
+Preserve the existing global Discord-user collection model.
+
+However, be careful not to accidentally introduce guild-specific filtering into collection/profile queries.
+
+==================================================
+PHASE 11 — PRESENTATION
+==================================================
+
+Improve Discord presentation where necessary.
+
+Collection/profile/search responses should be:
+
+- readable
+- consistent
+- concise
+- safe for Discord message limits
+- free of raw database errors
+
+Do not expose:
+
+- SQL
+- stack traces
+- environment variables
+- secrets
+- internal implementation details
+
+Use the existing presentation conventions where practical.
+
+A broad visual redesign is OUT OF SCOPE.
+
+==================================================
+PHASE 12 — ARCHITECTURAL BOUNDARIES
+==================================================
+
+Do NOT perform a broad refactor of client.ts.
+
+The current architecture places many commands inside one interactionCreate handler.
+
+This is a known maintainability concern.
+
+A focused extraction is allowed if it is directly required to make collection/pagination maintainable.
+
+However, do NOT turn Milestone 3 into:
+
+"rewrite the entire Discord architecture."
+
+Keep the change focused.
+
+The preferred logical direction is:
+
+Discord interaction
+    ↓
+focused game operation
+    ↓
+GameDatabase
+    ↓
+PostgreSQL
+
+The Discord layer should not contain complex SQL.
+
+==================================================
+OUT OF SCOPE
+==================================================
+
+Do NOT implement:
+
+- AI
+- AI character personalities
+- economy expansion
+- trading
+- marketplace
+- auctions
+- advanced pity systems
+- advanced roll banners
+- server leaderboards
+- achievements
+- events
+- seasonal systems
+- new character import systems
+- automatic web scraping
+- Mudae API integration
+- large UI/frontend application
+- guild-specific collections
+- a new database ORM
+
+Do not add unrelated features.
+
+==================================================
+CRITICAL CHARACTER RULE
+==================================================
+
+The fundamental V2 design principle remains:
+
+THE DATABASE DEFINES CHARACTER REALITY.
+
+AI must NEVER be used to determine whether a character exists.
+
+AI must NEVER invent canonical characters.
+
+AI is completely OUT OF SCOPE for this milestone.
+
+==================================================
+MILESTONE 2 PROTECTION
+==================================================
+
+Do not break:
+
+- /roll
+- public claim buttons
+- /claim
+- first-claim-wins
+- claiming by another user
+- roll expiration
+- verification filtering
+- ownership quantity increments
+- persistent PostgreSQL state
+
+After implementation, manually verify the live Discord behavior.
+
+==================================================
+VALIDATION REQUIREMENTS
+==================================================
+
+Before declaring Milestone 3 complete, run:
+
+1. TypeScript typecheck
+2. Production/API build
+3. Formatting validation if available
+4. Automated test suite
+5. Database startup validation
+6. Health endpoint
+
+Then manually test in Discord:
+
+### Collection
+
+- /collection with no characters
+- /collection with one character
+- /collection with duplicates
+- /collection with enough characters for multiple pages
+- next page
+- previous page
+- invalid/expired pagination interaction if applicable
+
+### Profile
+
+- new player
+- player with collection
+- player with duplicates
+
+### Search
+
+- character name
+- series
+- alias
+- no result
+- capitalization variation
+
+### Favorite
+
+- favorite owned character
+- unfavorite
+- attempt to favorite unowned character
+
+### Wishlist
+
+- add
+- remove
+- invalid/unverified character
+
+### Milestone 2 regression
+
+- /roll
+- public claim by another user
+- first claim wins
+- duplicate claim rejection
+- /claim behavior
+- ownership persistence
+
+==================================================
+GIT / CHANGE DISCIPLINE
+==================================================
+
+Do not erase existing history.
+
+Do not reset the repository.
+
+Do not force-push.
+
+Do not replace the project with a new implementation.
+
+Keep changes focused on Milestone 3.
+
+Before modifying files, inspect the current versions.
+
+==================================================
+FINAL DELIVERABLE
+==================================================
+
+When implementation is complete, return a structured report containing:
+
+# Milestone 3 Implementation Summary
+
+# Files Added
+
+# Files Modified
+
+# Database Changes
+
+# Collection Changes
+
+# Profile Changes
+
+# Search Changes
+
+# Favorite Changes
+
+# Wishlist Changes
+
+# Test Infrastructure
+
+# Automated Tests
+
+# Milestone 2 Regression Results
+
+# Validation Results
+
+# Remaining Known Issues
+
+# Out-of-Scope Items
+
+==================================================
+FINAL SUCCESS CRITERIA
+==================================================
+
+Milestone 3 is successful only if:
+
+- Existing collection functionality is preserved.
+- Collection supports reliable pagination.
+- Collection handles duplicates correctly.
+- Profile statistics are clearly defined.
+- Search remains verified-only.
+- Favorite uses canonical character identity safely.
+- Wishlist remains verified-only.
+- Automated tests now exist.
+- First-claim-wins has automated concurrency coverage.
+- Roll creation integrity is improved where applicable.
+- Existing Milestone 2 behavior remains intact.
+- Typecheck passes.
+- Build passes.
+- Tests pass.
+- Health endpoint passes.
+- Live Discord regression testing passes.
+
+Do NOT declare success based solely on compilation.
+
+The gameplay must remain correct.
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+You are implementing Milestone 3 on an EXISTING project.
+
+The repository is the source of truth.
+
+The validated Milestone 2 gameplay is a protected foundation.
+
+Do not recreate existing systems.
+
+Do not introduce unrelated architecture.
+
+Do not add AI.
+
+Do not expand scope.
+
+Inspect first.
+
+Implement deliberately.
+
+Test everything that matters.
+
+Preserve the existing game.

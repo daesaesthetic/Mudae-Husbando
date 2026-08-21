@@ -32,3 +32,51 @@ export function characterCard(roll: RollCardData) {
     components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)],
   };
 }
+
+type CollectionPageData = {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  items: {
+    name: string;
+    series: string;
+    quantity: number;
+    favorite: boolean;
+  }[];
+};
+
+export function collectionPage(
+  displayName: string,
+  collection: CollectionPageData,
+  ownerId: string,
+) {
+  const description = collection.items
+    .map(
+      (character) =>
+        `${character.favorite ? "★ " : ""}**${character.name}** — ${character.series} · ×${character.quantity}`,
+    )
+    .join("\n");
+  const previous = new ButtonBuilder()
+    .setCustomId(`collection:${ownerId}:${collection.page - 1}`)
+    .setLabel("Previous")
+    .setStyle(ButtonStyle.Secondary)
+    .setDisabled(collection.page <= 1);
+  const next = new ButtonBuilder()
+    .setCustomId(`collection:${ownerId}:${collection.page + 1}`)
+    .setLabel("Next")
+    .setStyle(ButtonStyle.Secondary)
+    .setDisabled(collection.page >= collection.totalPages);
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setTitle(`Collection — ${displayName}`)
+        .setDescription(description || "Your collection is empty. Use /roll to find a verified character.")
+        .setFooter({
+          text: `Page ${collection.page} / ${collection.totalPages} · ${collection.totalItems} unique character${collection.totalItems === 1 ? "" : "s"}`,
+        }),
+    ],
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(previous, next),
+    ],
+  };
+}

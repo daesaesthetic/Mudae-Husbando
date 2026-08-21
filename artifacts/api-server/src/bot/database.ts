@@ -1,5 +1,6 @@
 import pg from "pg";
-import { seedCharacters } from "./catalog";
+import { seedCharacters } from "./catalog.js";
+import { normalizePagination, normalizeSearchQuery } from "./rules.js";
 
 const { Pool } = pg;
 
@@ -9,11 +10,11 @@ export class GameDatabase {
     process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000,
   );
 
-  constructor() {
-    if (!process.env.DATABASE_URL) {
+  constructor(pool?: pg.Pool) {
+    if (!pool && !process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL is required for persistent game storage.");
     }
-    this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    this.pool = pool ?? new Pool({ connectionString: process.env.DATABASE_URL });
   }
 
   async initialize() {
@@ -102,15 +103,25 @@ export class GameDatabase {
     characterId: number,
   ) {
     const expiresAt = new Date(Date.now() + this.rollExpirationMs);
-    await this.pool.query(
-      "INSERT INTO mudae_rolls (id, discord_id, guild_id, character_id, expires_at) VALUES ($1,$2,$3,$4,$5)",
-      [id, discordId, guildId, characterId, expiresAt],
-    );
-    await this.pool.query(
-      "UPDATE mudae_users SET rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW() WHERE discord_id = $1",
-      [discordId],
-    );
-    return expiresAt;
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "INSERT INTO mudae_rolls (id, discord_id, guild_id, character_id, expires_at) VALUES ($1,$2,$3,$4,$5)",
+        [id, discordId, guildId, characterId, expiresAt],
+      );
+      await client.query(
+        "UPDATE mudae_users SET rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW() WHERE discord_id = $1",
+        [discordId],
+      );
+      await client.query("COMMIT");
+      return expiresAt;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async claimRoll(rollId: string, discordId: string) {
@@ -215,11 +226,20 @@ export class GameDatabase {
   }
 
   async search(query: string) {
+    const normalizedQuery = normalizeSearchQuery(query);
+    if (!normalizedQuery) return [];
     const result = await this.pool.query(
       `SELECT id, name, series, rarity, value FROM mudae_characters
-       WHERE status = 'verified' AND (name ILIKE $1 OR series ILIKE $1 OR $1 = ANY(aliases))
+       WHERE status = 'verified' AND (
+         name ILIKE $1
+         OR series ILIKE $1
+         OR EXISTS (
+           SELECT 1 FROM unnest(aliases) AS alias
+           WHERE alias ILIKE $1
+         )
+       )
        ORDER BY name LIMIT 10`,
-      [`%${query}%`],
+      [`%${normalizedQuery}%`],
     );
     return result.rows as {
       id: number;
@@ -230,26 +250,46 @@ export class GameDatabase {
     }[];
   }
 
-  async collection(discordId: string) {
-    const result = await this.pool.query(
-      `SELECT c.name, c.series, c.rarity, c.value, o.quantity, o.favorite
-       FROM mudae_collections o JOIN mudae_characters c ON c.id = o.character_id
-       WHERE o.discord_id = $1 ORDER BY c.name`,
+  async collection(discordId: string, page = 1, pageSize = 8) {
+    const countResult = await this.pool.query(
+      `SELECT COUNT(*)::int AS total
+       FROM mudae_collections
+       WHERE discord_id = $1`,
       [discordId],
     );
-    return result.rows as {
-      name: string;
-      series: string;
-      rarity: string;
-      value: number;
-      quantity: number;
-      favorite: boolean;
-    }[];
+    const totalItems = Number(countResult.rows[0]?.total ?? 0);
+    const pagination = normalizePagination(page, pageSize, totalItems);
+    const result = await this.pool.query(
+      `SELECT c.id AS "characterId", c.name, c.series, c.rarity, c.value, o.quantity, o.favorite
+       FROM mudae_collections o JOIN mudae_characters c ON c.id = o.character_id
+       WHERE o.discord_id = $1 ORDER BY c.name, c.id
+       LIMIT $2 OFFSET $3`,
+      [discordId, pagination.pageSize, pagination.offset],
+    );
+    return {
+      items: result.rows as {
+        characterId: number;
+        name: string;
+        series: string;
+        rarity: string;
+        value: number;
+        quantity: number;
+        favorite: boolean;
+      }[],
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      totalItems,
+      totalPages: pagination.totalPages,
+    };
   }
 
   async profile(discordId: string) {
     const result = await this.pool.query(
-      `SELECT u.currency, u.rolls_used, u.claims_count, COUNT(o.character_id)::int AS collection_size
+      `SELECT u.currency, u.rolls_used, u.claims_count,
+              COUNT(o.character_id)::int AS unique_characters,
+              COALESCE(SUM(o.quantity), 0)::int AS total_copies,
+              COUNT(o.character_id) FILTER (WHERE o.favorite)::int AS favorites,
+              (SELECT COUNT(*)::int FROM mudae_wishlists w WHERE w.discord_id = u.discord_id) AS wishlist_count
        FROM mudae_users u LEFT JOIN mudae_collections o ON o.discord_id = u.discord_id
        WHERE u.discord_id = $1 GROUP BY u.discord_id`,
       [discordId],
@@ -259,7 +299,10 @@ export class GameDatabase {
           currency: number;
           rolls_used: number;
           claims_count: number;
-          collection_size: number;
+          unique_characters: number;
+          total_copies: number;
+          favorites: number;
+          wishlist_count: number;
         }
       | undefined;
   }
@@ -279,13 +322,16 @@ export class GameDatabase {
     return true;
   }
 
-  async toggleFavorite(discordId: string, name: string) {
+  async toggleFavorite(discordId: string, characterId: number) {
+    const character = await this.getCharacter(characterId);
+    if (!character) return "invalid" as const;
     const result = await this.pool.query(
       `UPDATE mudae_collections SET favorite = NOT favorite
-       WHERE discord_id = $1 AND character_id = (SELECT id FROM mudae_characters WHERE LOWER(name) = LOWER($2))
+       WHERE discord_id = $1 AND character_id = $2
        RETURNING favorite`,
-      [discordId, name],
+      [discordId, characterId],
     );
-    return result.rows[0]?.favorite as boolean | undefined;
+    if (!result.rowCount) return "unowned" as const;
+    return result.rows[0].favorite as boolean;
   }
 }

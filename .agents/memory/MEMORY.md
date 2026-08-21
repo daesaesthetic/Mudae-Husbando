@@ -1,1 +1,2 @@
 - [Imported artifact workflows](imported-artifact-workflows.md) — imported artifact metadata may need a workspace workflow configured manually before the service can run.
+- [TypeScript ESM tests](typescript-esm-tests.md) — compiled Node test imports need explicit `.js` local extensions for reliable ESM resolution.
