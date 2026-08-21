@@ -80,3 +80,72 @@ export function collectionPage(
     ],
   };
 }
+
+export function profileCard(displayName: string, profile: {
+  unique_characters: number;
+  total_copies: number;
+  favorites: number;
+  wishlist_count: number;
+  claims_count: number;
+  rolls_used: number;
+  currency: number;
+}) {
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setColor(0x38bdf8)
+        .setTitle(`${displayName}'s Profile`)
+        .addFields(
+          { name: "Unique Characters", value: `${profile.unique_characters}`, inline: true },
+          { name: "Total Copies", value: `${profile.total_copies}`, inline: true },
+          { name: "Favorites", value: `${profile.favorites}`, inline: true },
+          { name: "Wishlist", value: `${profile.wishlist_count}`, inline: true },
+          { name: "Claims", value: `${profile.claims_count}`, inline: true },
+          { name: "Rolls", value: `${profile.rolls_used}`, inline: true },
+          { name: "Currency", value: `${profile.currency}`, inline: true },
+        )
+        .setFooter({ text: "Your verified character collection" }),
+    ],
+  };
+}
+
+export function searchResults(results: {
+  name: string;
+  series: string;
+  rarity: string;
+  value: number;
+}[]) {
+  const embed = new EmbedBuilder()
+    .setColor(0xa78bfa)
+    .setTitle("Verified Character Search")
+    .setDescription(
+      results
+        .map(
+          (character) =>
+            `**${character.name}**\n${character.series} · ${character.rarity} · Value ${character.value}`,
+        )
+        .join("\n\n"),
+    )
+    .setFooter({ text: `${results.length} verified result${results.length === 1 ? "" : "s"}` });
+  return { embeds: [embed] };
+}
+
+export function actionResult(
+  title: string,
+  description: string,
+  color = 0x38bdf8,
+) {
+  return {
+    embeds: [
+      new EmbedBuilder().setColor(color).setTitle(title).setDescription(description),
+    ],
+  };
+}
+
+export function developerModeCard(enabled: boolean) {
+  return actionResult(
+    "Developer Mode",
+    `Status: **${enabled ? "ON" : "OFF"}**\nRoll limit bypass: **${enabled ? "ENABLED" : "DISABLED"}**`,
+    enabled ? 0xf59e0b : 0x64748b,
+  );
+}

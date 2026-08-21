@@ -1,6 +1,12 @@
 import pg from "pg";
 import { seedCharacters } from "./catalog.js";
-import { normalizePagination, normalizeSearchQuery } from "./rules.js";
+import {
+  normalizePagination,
+  normalizeSearchQuery,
+  resolveCharacterMatches,
+  type CharacterMatch,
+  type CharacterResolution,
+} from "./rules.js";
 
 const { Pool } = pg;
 
@@ -231,11 +237,11 @@ export class GameDatabase {
     const result = await this.pool.query(
       `SELECT id, name, series, rarity, value FROM mudae_characters
        WHERE status = 'verified' AND (
-         name ILIKE $1
-         OR series ILIKE $1
+          regexp_replace(name, '\\s+', ' ', 'g') ILIKE $1
+          OR regexp_replace(series, '\\s+', ' ', 'g') ILIKE $1
          OR EXISTS (
            SELECT 1 FROM unnest(aliases) AS alias
-           WHERE alias ILIKE $1
+            WHERE regexp_replace(alias, '\\s+', ' ', 'g') ILIKE $1
          )
        )
        ORDER BY name LIMIT 10`,
@@ -248,6 +254,25 @@ export class GameDatabase {
       rarity: string;
       value: number;
     }[];
+  }
+
+  async resolveCharacter(query: string): Promise<CharacterResolution> {
+    const normalizedQuery = normalizeSearchQuery(query);
+    if (!normalizedQuery) return { status: "not_found", matches: [] };
+    const result = await this.pool.query(
+      `SELECT id, name, series, rarity, value FROM mudae_characters
+       WHERE status = 'verified' AND (
+         regexp_replace(name, '\\s+', ' ', 'g') ILIKE $1
+         OR regexp_replace(series, '\\s+', ' ', 'g') ILIKE $1
+         OR EXISTS (
+           SELECT 1 FROM unnest(aliases) AS alias
+           WHERE regexp_replace(alias, '\\s+', ' ', 'g') ILIKE $1
+         )
+       )
+       ORDER BY name LIMIT 11`,
+      [`%${normalizedQuery}%`],
+    );
+    return resolveCharacterMatches(normalizedQuery, result.rows as CharacterMatch[]);
   }
 
   async collection(discordId: string, page = 1, pageSize = 8) {

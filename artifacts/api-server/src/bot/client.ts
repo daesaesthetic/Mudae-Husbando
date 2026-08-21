@@ -11,7 +11,14 @@ import {
   isDeveloperModeEnabled,
   toggleDeveloperMode,
 } from "./developer.js";
-import { characterCard, collectionPage } from "./presentation";
+import {
+  actionResult,
+  characterCard,
+  collectionPage,
+  developerModeCard,
+  profileCard,
+  searchResults,
+} from "./presentation";
 
 const commands = [
   new SlashCommandBuilder()
@@ -34,26 +41,26 @@ const commands = [
     .setDescription("Search the verified catalog")
     .addStringOption((o) =>
       o
-        .setName("query")
+        .setName("character")
         .setDescription("Character or series name")
         .setRequired(true),
     ),
   new SlashCommandBuilder()
     .setName("wishlist")
     .setDescription("Add or remove a character")
-    .addIntegerOption((o) =>
+    .addStringOption((o) =>
       o
-        .setName("character_id")
-        .setDescription("Verified character ID")
+        .setName("character")
+        .setDescription("Character name or alias")
         .setRequired(true),
     ),
   new SlashCommandBuilder()
     .setName("favorite")
     .setDescription("Toggle a collection favorite")
-    .addIntegerOption((o) =>
+    .addStringOption((o) =>
       o
-        .setName("character_id")
-        .setDescription("Canonical character ID")
+        .setName("character")
+        .setDescription("Character name or alias")
         .setRequired(true),
     ),
 ].map((command) => command.toJSON());
@@ -129,11 +136,7 @@ export async function startDiscordBot() {
             ephemeral: true,
           });
         return interaction.reply({
-          content: [
-            "**DEVELOPER MODE**",
-            `Status: ${enabled ? "ON" : "OFF"}`,
-            `Unlimited Rolls: ${enabled ? "ENABLED" : "DISABLED"}`,
-          ].join("\n"),
+          ...developerModeCard(enabled),
           ephemeral: true,
         });
       }
@@ -180,16 +183,11 @@ export async function startDiscordBot() {
       }
       if (interaction.commandName === "search") {
         const results = await database.search(
-          interaction.options.getString("query", true),
+          interaction.options.getString("character", true),
         );
         return interaction.reply(
           results.length
-            ? results
-                .map(
-                  (c) =>
-                    `**#${c.id} ${c.name}** — ${c.series} · ${c.rarity} · ${c.value}`,
-                )
-                .join("\n")
+            ? searchResults(results)
             : "No verified characters matched that search.",
         );
       }
@@ -204,35 +202,70 @@ export async function startDiscordBot() {
       if (interaction.commandName === "profile") {
         const profile = await database.profile(interaction.user.id);
         return interaction.reply(
-          `**${interaction.user.displayName}**\nUnique Characters: ${profile?.unique_characters ?? 0}\nTotal Copies: ${profile?.total_copies ?? 0}\nFavorites: ${profile?.favorites ?? 0}\nWishlist: ${profile?.wishlist_count ?? 0}\nClaims: ${profile?.claims_count ?? 0}\nRolls: ${profile?.rolls_used ?? 0}\nCurrency: ${profile?.currency ?? 0}`,
+          profileCard(interaction.user.displayName, profile ?? {
+            unique_characters: 0,
+            total_copies: 0,
+            favorites: 0,
+            wishlist_count: 0,
+            claims_count: 0,
+            rolls_used: 0,
+            currency: 0,
+          }),
         );
       }
       if (interaction.commandName === "wishlist") {
-        const added = await database.toggleWishlist(
-          interaction.user.id,
-          interaction.options.getInteger("character_id", true),
+        const resolution = await database.resolveCharacter(
+          interaction.options.getString("character", true),
         );
+        if (resolution.status === "not_found")
+          return interaction.reply("No verified character matched that name.");
+        if (resolution.status === "ambiguous")
+          return interaction.reply({
+            ...actionResult(
+              "Choose a More Specific Character",
+              resolution.matches
+                .map((character) => `**${character.name}** — ${character.series}`)
+                .join("\n"),
+              0xf59e0b,
+            ),
+            ephemeral: true,
+          });
+        const added = await database.toggleWishlist(interaction.user.id, resolution.character.id);
         return interaction.reply(
-          added === null
-            ? "That is not a verified character ID."
-            : added
-              ? "Added to your wishlist."
-              : "Removed from your wishlist.",
+          actionResult(
+            added ? "Added to Wishlist" : "Removed from Wishlist",
+            `${added ? "♡ Added" : "♡ Removed"} **${resolution.character.name}** ${added ? "to your wishlist." : "from your wishlist."}`,
+          ),
         );
       }
       if (interaction.commandName === "favorite") {
+        const resolution = await database.resolveCharacter(
+          interaction.options.getString("character", true),
+        );
+        if (resolution.status === "not_found")
+          return interaction.reply("No verified character matched that name.");
+        if (resolution.status === "ambiguous")
+          return interaction.reply({
+            ...actionResult(
+              "Choose a More Specific Character",
+              resolution.matches
+                .map((character) => `**${character.name}** — ${character.series}`)
+                .join("\n"),
+              0xf59e0b,
+            ),
+            ephemeral: true,
+          });
         const favorite = await database.toggleFavorite(
           interaction.user.id,
-          interaction.options.getInteger("character_id", true),
+          resolution.character.id,
         );
         return interaction.reply(
-          favorite === "invalid"
-            ? "That is not a verified character ID."
-            : favorite === "unowned"
-              ? "That character is not in your collection."
-            : favorite
-              ? "Added to favorites."
-              : "Removed from favorites.",
+          favorite === "unowned"
+            ? actionResult("Favorite Not Updated", `You do not own **${resolution.character.name}**.`, 0xf59e0b)
+            : actionResult(
+                favorite ? "Added to Favorites" : "Removed from Favorites",
+                `${favorite ? "★ Added" : "☆ Removed"} **${resolution.character.name}** ${favorite ? "to your favorites." : "from your favorites."}`,
+              ),
         );
       }
       return;

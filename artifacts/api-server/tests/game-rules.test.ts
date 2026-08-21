@@ -8,7 +8,11 @@ import {
   resetDeveloperModes,
   toggleDeveloperMode,
 } from "../src/bot/developer.js";
-import { normalizePagination, normalizeSearchQuery } from "../src/bot/rules.js";
+import {
+  normalizePagination,
+  normalizeSearchQuery,
+  resolveCharacterMatches,
+} from "../src/bot/rules.js";
 
 type QueryResult = { rows: Record<string, unknown>[]; rowCount: number };
 
@@ -93,6 +97,19 @@ describe("collection and search rules", () => {
       offset: 0,
     });
   });
+
+  it("resolves exact, partial, and ambiguous character matches", () => {
+    const matches = [
+      { id: 1, name: "Satoru Gojo", series: "Jujutsu Kaisen", rarity: "rare", value: 95 },
+      { id: 2, name: "Gojo Wakana", series: "My Dress-Up Darling", rarity: "common", value: 40 },
+    ];
+    const exact = resolveCharacterMatches(" satoru   gojo ", matches);
+    assert.equal(exact.status, "resolved");
+    if (exact.status === "resolved") assert.equal(exact.character.id, 1);
+    assert.equal(resolveCharacterMatches("Wakana", [matches[1]]).status, "resolved");
+    assert.equal(resolveCharacterMatches("Gojo", matches).status, "ambiguous");
+    assert.equal(resolveCharacterMatches("Unknown", []).status, "not_found");
+  });
 });
 
 describe("claim transaction foundation", () => {
@@ -137,5 +154,14 @@ describe("developer authorization and mode", () => {
     assert.equal(isDeveloperModeEnabled("dev-a"), false);
     assert.equal(toggleDeveloperMode("user", "dev-a"), null);
     resetDeveloperModes();
+  });
+
+  it("starts disabled after reset, including after a simulated restart", () => {
+    resetDeveloperModes();
+    assert.equal(isDeveloperModeEnabled("dev-a"), false);
+    assert.equal(toggleDeveloperMode("dev-a", "dev-a"), true);
+    resetDeveloperModes();
+    assert.equal(isDeveloperModeEnabled("dev-a"), false);
+    assert.equal(isDeveloperModeEnabled("dev-b"), false);
   });
 });
