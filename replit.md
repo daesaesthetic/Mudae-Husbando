@@ -1,6 +1,6 @@
-# [Project name]
+# Mudae Husbando V2
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An actual Discord character-collection game with a verified-only catalog and persistent player collections.
 
 ## Run & Operate
 
@@ -9,7 +9,9 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required secret: `DISCORD_TOKEN` — Discord bot token
+- `DATABASE_URL` is provided by the Replit database
+- Optional env: `DISCORD_CLIENT_ID` — application ID; if omitted, the bot resolves it from Discord
 
 ## Stack
 
@@ -22,23 +24,29 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/bot/client.ts` — Discord slash commands and embeds
+- `artifacts/api-server/src/bot/database.ts` — persistent Postgres game storage and verified-only queries
+- `artifacts/api-server/src/bot/catalog.ts` — manually curated verified seed catalog
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The Discord client and health API share the existing API Server workflow so the bot runs as a normal Replit service.
+- Postgres stores all important game state; startup creates additive tables and seeds only verified records.
+- The bot never asks AI or user input to establish character identity; rolls and search query `status = 'verified'`.
+- Discord tokens are read only from Replit Secrets.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The first playable slice includes verified character rolls, claiming, collections, profiles, catalog search, wishlists, and favorites.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep the existing file locations; do not move files unless the bot runtime requires it.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The API workflow runs both the health endpoint and Discord bot.
+- Discord slash commands are registered globally during startup and may take a short time to appear.
 
 ## Pointers
 
