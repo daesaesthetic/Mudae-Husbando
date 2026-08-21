@@ -1,0 +1,955 @@
+# MUDAE HUSBANDO V2
+
+## Authoritative Replit Agent Initialization Prompt
+
+You are building **Mudae Husbando V2**, a Discord bot from scratch.
+
+This is a complete architectural rebuild of an earlier prototype. The previous prototype is provided only as a reference for ideas, existing gameplay concepts, visual design, and lessons learned. **Do not blindly continue, copy, or patch the old implementation.**
+
+The goal is to create a clean, maintainable, scalable Discord bot hosted on Replit.
+
+---
+
+# 1. CORE PURPOSE
+
+Mudae Husbando is a Discord character-collection game inspired by the gameplay structure of Mudae.
+
+The bot should allow users to:
+
+* Roll characters
+* View character cards
+* Claim characters
+* Build collections
+* Search characters
+* Maintain wishlists
+* Track favorites
+* View profiles
+* Participate in an economy
+* Use cooldowns
+* View leaderboards
+* Interact with characters through optional AI functionality
+* Eventually support a very large verified character catalog
+
+The bot should have a polished Discord-native experience using:
+
+* Slash commands
+* Prefix commands where appropriate
+* Discord embeds
+* Buttons
+* Select menus where useful
+* Persistent database storage
+* Proper error handling
+* Developer/admin tools
+* Replit-compatible deployment
+
+The final product should feel like a real Discord game rather than a basic bot.
+
+---
+
+# 2. MOST IMPORTANT REQUIREMENT: CHARACTER TRUTH
+
+The single biggest flaw in V1 was the use of original/generated characters as if they were legitimate Mudae characters.
+
+This MUST NOT happen in V2.
+
+The previous prototype produced characters such as:
+
+* Kaia Ember
+* Riven Ashfall
+* Mira Solenne
+* Yuna Kisaragi
+* Vesper Nyx
+
+and fictional series such as:
+
+* Ember Crown
+* Neon Reverie
+* Moonlit Archives
+* Starbound
+
+These were generated/original characters.
+
+They are NOT acceptable as members of the Mudae character pool.
+
+## Absolute rule
+
+**The AI must NEVER be the authority on whether a character exists.**
+
+The AI must never:
+
+* invent a character
+* invent a series
+* fabricate a Mudae character
+* decide that an unknown character is legitimate
+* add a character to the playable catalog
+* silently substitute an original character for a requested real character
+* hallucinate a character when a requested character cannot be verified
+
+Character existence is determined exclusively by the application's verified character database.
+
+---
+
+# 3. AUTHORITATIVE CHARACTER ARCHITECTURE
+
+V2 will use a **hybrid character architecture**.
+
+The initial release will use a **curated, manually verified catalog**.
+
+The architecture must then support expanding that catalog through future imports and verification.
+
+The flow should be:
+
+```
+Character source
+      |
+      v
+Candidate records
+      |
+      v
+Verification
+      |
+   +--+--+
+   |     |
+Approved Rejected
+   |
+   v
+Verified Catalog
+   |
+   +------------------+
+   |                  |
+  Rolls             Search
+   |                  |
+   v                  v
+Gameplay          User requests
+   |
+   v
+Optional AI layer
+```
+
+Only characters in the **Verified Catalog** may be rolled or claimed.
+
+---
+
+# 4. CHARACTER STATUS SYSTEM
+
+Character records should support explicit verification state.
+
+At minimum:
+
+* `verified`
+* `pending`
+* `rejected`
+* `deprecated`
+
+Only:
+
+```
+status = "verified"
+```
+
+may enter the playable pool.
+
+Imported or discovered characters must NOT automatically become playable.
+
+They should initially become:
+
+```
+status = "pending"
+```
+
+and require verification before entering the game.
+
+A rejected or deprecated character must never appear in normal rolls.
+
+---
+
+# 5. INITIAL CATALOG
+
+Do NOT attempt to import the entire Mudae database during initial development.
+
+Start with approximately **50–100 legitimate characters**.
+
+The initial catalog should be deliberately curated and verified.
+
+The database should be designed so that expanding:
+
+```
+100 -> 250 -> 500 -> 1,000 -> thousands
+```
+
+does not require rewriting the game's core systems.
+
+The catalog should contain actual existing characters from legitimate anime, manga, games, visual novels, manhwa, Western media, comics, etc., as appropriate.
+
+Do NOT use generated characters to fill gaps.
+
+If an entry cannot be verified, leave it out.
+
+---
+
+# 6. MUDAE REFERENCE
+
+The official Mudae character search/database is:
+
+https://mudae.net/search?type=character
+
+Use this as a reference when researching character eligibility.
+
+Do not assume that an LLM's internal knowledge is sufficient to establish that a character belongs to Mudae.
+
+The application should ultimately rely on structured verified data, not AI memory.
+
+Also respect the website's terms, technical limitations, and applicable rights when designing any future import process.
+
+Do not implement aggressive scraping merely because it is technically possible.
+
+---
+
+# 7. CHARACTER DATA MODEL
+
+Design the character schema for future expansion.
+
+A character should contain fields along the lines of:
+
+* Internal database ID
+* Name
+* Aliases
+* Series
+* Media type
+* Gender
+* Source
+* Source ID where available
+* Image URL
+* Description
+* Rarity
+* Kakera/value equivalent
+* Verification status
+* Metadata
+* Created timestamp
+* Updated timestamp
+
+The exact schema may be improved during implementation.
+
+The important requirement is that the schema separates:
+
+1. Identity
+2. Source information
+3. Verification
+4. Gameplay data
+5. Optional AI metadata
+
+Do not mix generated AI content with authoritative identity data.
+
+---
+
+# 8. AI ARCHITECTURE
+
+AI is an optional enhancement layer.
+
+AI is NOT the database.
+
+AI should receive an already-verified character record.
+
+For example:
+
+```
+Character:
+    Name: Satoru Gojo
+    Series: Jujutsu Kaisen
+    Verified: true
+```
+
+The AI may then generate:
+
+* Flavor text
+* Reactions
+* Character banter
+* Optional roleplay
+* Fun commentary
+* Personality-driven responses
+
+But the AI must not determine:
+
+* Whether Gojo exists
+* What series Gojo belongs to
+* Whether an unknown character is legitimate
+* Whether a character should be added
+* Whether a generated character should be playable
+
+The code/database establishes truth.
+
+The AI provides personality.
+
+---
+
+# 9. AI SAFETY AGAINST HALLUCINATIONS
+
+Every AI feature must follow this principle:
+
+```
+VERIFIED DATA -> AI -> PRESENTATION
+```
+
+Never:
+
+```
+USER REQUEST -> AI -> CHARACTER CREATION
+```
+
+If a user asks:
+
+```
+"Give me a character named Kaia Ember."
+```
+
+and Kaia Ember is not in the verified catalog, the AI must NOT create Kaia Ember.
+
+The bot should instead respond appropriately, such as:
+
+```
+"I couldn't find Kaia Ember in the verified character catalog."
+```
+
+The exact response can be polished later.
+
+Never fabricate a replacement character unless the user explicitly requests an original character feature—and even then, original characters must remain completely separate from the Mudae character system.
+
+---
+
+# 10. ORIGINAL CHARACTERS
+
+V2 should NOT contain original characters in the normal Mudae character pool.
+
+If an OC system is ever added in the future, it must be a completely separate entity type.
+
+For example:
+
+```
+VerifiedCharacter
+OriginalCharacter
+```
+
+must never be interchangeable.
+
+An OC must never be:
+
+* rolled as a Mudae character
+* represented as a Mudae character
+* inserted into the verified catalog
+* presented as an official Mudae character
+
+---
+
+# 11. ROLL SYSTEM
+
+The roll system must only query verified characters.
+
+Conceptually:
+
+```
+SELECT character
+FROM characters
+WHERE status = "verified"
+```
+
+All rarity weighting, values, and other gameplay calculations occur after the eligible pool has been established.
+
+The roll system must never query:
+
+* pending characters
+* rejected characters
+* deprecated characters
+* generated characters
+* arbitrary AI output
+
+A roll must always produce a deterministic database-backed character record.
+
+---
+
+# 12. CHARACTER CARD
+
+The previous prototype's card design was good and should serve as a visual reference.
+
+The previous card contained:
+
+* Roll count
+* Character name
+* Character number
+* Description
+* Series
+* Rarity
+* Value
+* Artwork
+* Roll attribution
+* Claim button
+
+The new card should retain the general concept while improving it where appropriate.
+
+Example structure:
+
+```
+You rolled 1 character.
+Rolls remaining: 8
+
+┌─────────────────────────────────┐
+│ Satoru Gojo · #XXXX             │
+│                                 │
+│ Jujutsu Kaisen's strongest      │
+│ sorcerer...                     │
+│                                 │
+│ Series       Rarity      Value  │
+│ Jujutsu      Rare        XXX    │
+│ Kaisen                         │
+│                                 │
+│ Mudae Roll • Claim with /claim  │
+└─────────────────────────────────┘
+
+[ Claim Character ]
+```
+
+The exact wording and design may evolve.
+
+---
+
+# 13. GAMEPLAY FOUNDATION
+
+Build the game around persistent user data.
+
+The architecture should support:
+
+### Users
+
+* Discord user ID
+* username/display metadata where appropriate
+* rolls
+* cooldowns
+* currency
+* statistics
+* settings
+
+### Collections
+
+Users can own characters.
+
+A collection record should identify:
+
+* User
+* Character
+* Quantity/duplicate information where applicable
+* Acquisition timestamp
+* Favorite status
+
+### Claims
+
+A character roll should be claimable through:
+
+* `/claim`
+* button interaction where appropriate
+
+The claim system must prevent two users from claiming the same temporary roll.
+
+Claim state must be handled safely.
+
+---
+
+# 14. WISHLISTS
+
+Users should eventually be able to maintain a wishlist.
+
+Wishlist functionality should operate against the verified catalog.
+
+A wishlist entry must reference an actual character database record.
+
+Do not store arbitrary AI-generated names as wishlist characters.
+
+---
+
+# 15. SEARCH
+
+Search should query the verified catalog.
+
+It should support things such as:
+
+* Character name
+* Alias
+* Series
+* Media type
+* Potential filters
+
+Search results must clearly distinguish verified records.
+
+Search must not use AI as the primary search database.
+
+AI can later help interpret natural-language searches, but any resulting character must still resolve to a verified database record.
+
+---
+
+# 16. PROFILE SYSTEM
+
+A user profile should eventually display things such as:
+
+* Collection size
+* Favorites
+* Wishlist
+* Currency
+* Roll statistics
+* Claim statistics
+* Rarest characters
+* Other game statistics
+
+The system should be designed for future expansion.
+
+---
+
+# 17. ECONOMY
+
+The bot should have a persistent economy inspired by the concept of kakera.
+
+However, do not overcomplicate the initial implementation.
+
+The architecture should support:
+
+* Character values
+* User currency
+* Rewards
+* Spending
+* Future upgrades/features
+
+All economic operations must be server-safe and persistent.
+
+---
+
+# 18. RARITY SYSTEM
+
+Implement a configurable rarity system.
+
+Do NOT hardcode rarity assumptions throughout the code.
+
+Rarity should be represented in data/configuration so we can later adjust:
+
+* Roll probability
+* Value
+* Color
+* Display name
+* Claim behavior
+* Special effects
+
+without rewriting the roll system.
+
+---
+
+# 19. COOLDOWNS
+
+Cooldowns must be persistent or safely reconstructable from persistent state.
+
+The architecture should support:
+
+* Roll cooldowns
+* Daily reset/recharge
+* Future command-specific cooldowns
+
+Avoid scattered cooldown logic across individual commands.
+
+Create a reusable cooldown/service system.
+
+---
+
+# 20. DISCORD COMMAND ARCHITECTURE
+
+Use slash commands as the primary interface.
+
+Prefix commands may be supported where useful.
+
+Commands should be organized cleanly rather than placing the entire bot into one enormous file.
+
+Potential initial commands:
+
+```
+/roll
+/claim
+/collection
+/profile
+/search
+/wishlist
+/favorite
+/help
+```
+
+Developer/admin commands should be separate and permission protected.
+
+Do not expose developer controls to ordinary users.
+
+---
+
+# 21. DEVELOPER TOOLS
+
+Create an architecture that eventually supports developer-only catalog management.
+
+Potential tools:
+
+```
+/catalog search
+/catalog add
+/catalog verify
+/catalog reject
+/catalog remove
+/catalog stats
+```
+
+Do not expose these commands publicly.
+
+For V1/V2 development, database management can initially be done through scripts if that is safer.
+
+---
+
+# 22. DATABASE
+
+Use a persistent database suitable for Replit.
+
+SQLite is acceptable for the initial implementation if appropriate.
+
+The database must survive bot restarts.
+
+Do not store important game state exclusively in memory.
+
+Avoid fragile JSON-only persistence for core gameplay unless there is a strong reason.
+
+The schema should be migration-friendly.
+
+Use sequential schema migrations so future versions can modify the database safely.
+
+Do not destroy existing data during migrations.
+
+---
+
+# 23. PROJECT STRUCTURE
+
+Do NOT build the entire bot inside a single source file.
+
+Use a clean structure along the lines of:
+
+```
+src/
+  commands/
+  events/
+  services/
+  database/
+  models/
+  utils/
+  ai/
+  config/
+  types/
+
+data/
+scripts/
+tests/
+```
+
+The exact structure can differ if the chosen framework benefits from another organization.
+
+Prioritize maintainability over blindly following this example.
+
+---
+
+# 24. CONFIGURATION AND SECRETS
+
+Never hardcode:
+
+* Discord bot tokens
+* AI API keys
+* private credentials
+* database credentials
+* other secrets
+
+Use Replit Secrets/environment variables.
+
+The application should fail clearly if required configuration is missing.
+
+Do not print secrets to logs.
+
+---
+
+# 25. ERROR HANDLING
+
+Discord interactions must be acknowledged properly.
+
+Avoid:
+
+* "This interaction failed"
+* double responses
+* unhandled promise rejections
+* silent database failures
+* crashes caused by malformed user input
+
+Commands should use proper deferred replies where operations may take time.
+
+Errors should be logged with useful diagnostic information without exposing secrets.
+
+---
+
+# 26. TESTING
+
+Do not consider a feature complete merely because the code compiles.
+
+Test:
+
+* Character insertion
+* Verification states
+* Roll eligibility
+* Roll weighting
+* Claiming
+* Duplicate claims
+* User persistence
+* Cooldowns
+* Search
+* Wishlist
+* Database restart persistence
+* Invalid character requests
+* AI character restrictions
+* Discord button interactions
+* Permission checks
+
+Most importantly, test the exact V1 failure:
+
+```
+"Generate a random male anime character."
+```
+
+The bot must select a real verified database record.
+
+It must NEVER generate an OC.
+
+---
+
+# 27. REPLIT REQUIREMENTS
+
+This project is intended to run on Replit.
+
+Make the project easy to:
+
+1. Install dependencies
+2. Configure Secrets
+3. Run locally within Replit
+4. Register Discord commands
+5. Start the bot
+6. Restart safely
+7. Deploy
+8. Diagnose runtime errors
+
+Document the required Replit configuration.
+
+Do not assume the developer is using VS Code.
+
+Commands and file locations should be explained clearly.
+
+---
+
+# 28. OLD ZIP / V1 REFERENCE
+
+The original Mudae Husbando ZIP may be available as a reference.
+
+If it is accessible to you, inspect it before making architectural decisions.
+
+Use it to understand:
+
+* Existing gameplay ideas
+* Command names
+* UI concepts
+* Database concepts
+* Previous bugs
+* Replit configuration
+* What was already attempted
+
+However:
+
+**Do not treat V1's character catalog as authoritative.**
+
+Its generated characters are specifically an example of what V2 must avoid.
+
+Do not blindly copy its catalog or character-generation logic.
+
+Do not preserve architectural problems simply because they existed in V1.
+
+---
+
+# 29. DEVELOPMENT METHODOLOGY
+
+Work incrementally.
+
+Do NOT immediately generate thousands of lines of code.
+
+First:
+
+1. Inspect the environment.
+2. Determine the current Replit project state.
+3. Establish the language/runtime.
+4. Establish dependencies.
+5. Design the database.
+6. Create migrations.
+7. Create the verified character model.
+8. Insert a small verified seed catalog.
+9. Implement the roll engine.
+10. Implement the character card.
+11. Implement claiming.
+12. Test persistence.
+13. Then expand gameplay.
+
+After each major milestone, verify that the project still runs.
+
+Do not stack ten untested systems on top of one another.
+
+---
+
+# 30. IMPORTANT: ASK BEFORE MAKING MAJOR ASSUMPTIONS
+
+If a decision would materially affect the architecture, stop and explain the decision before implementing it.
+
+Examples:
+
+* Switching database technology
+* Introducing a major external service
+* Changing the AI provider
+* Scraping/importing a third-party database
+* Changing the core character model
+* Adding a major economy mechanic
+* Removing an important gameplay feature
+
+Small implementation decisions may be made independently.
+
+Major architectural decisions should be surfaced.
+
+---
+
+# 31. DEFINITION OF SUCCESS
+
+V2 is successful if this sequence works:
+
+```
+User:
+/roll
+
+Bot:
+selects a character from the VERIFIED catalog
+
+↓
+
+Character card appears
+
+↓
+
+User:
+[Claim Character]
+
+↓
+
+Bot:
+records ownership persistently
+
+↓
+
+User restarts/redeploys bot
+
+↓
+
+Collection still exists
+
+↓
+
+User:
+/search Gojo
+
+↓
+
+Bot:
+returns the verified Gojo record
+
+↓
+
+User asks an AI feature about Gojo
+
+↓
+
+AI receives Gojo's verified identity
+
+↓
+
+AI responds about Gojo
+
+↓
+
+AI never changes Gojo's identity or invents a replacement character
+```
+
+---
+
+# 32. NON-NEGOTIABLE RULES
+
+Keep these rules in mind throughout the entire project:
+
+1. **The database is the authority on character existence.**
+2. **AI is never the authority on character existence.**
+3. **Only verified characters can be rolled.**
+4. **Original characters are never part of the Mudae pool.**
+5. **Pending characters cannot be rolled.**
+6. **Rejected/deprecated characters cannot be rolled.**
+7. **User input cannot directly create a playable character.**
+8. **AI output cannot directly create a playable character.**
+9. **Important game state must persist.**
+10. **Secrets must never be hardcoded.**
+11. **Do not replace working architecture unnecessarily.**
+12. **Do not create an enormous monolithic file.**
+13. **Test each major system before building on it.**
+14. **Favor deterministic code for game mechanics.**
+15. **Use AI for personality and presentation, not truth.**
+
+---
+
+# 33. FIRST TASK
+
+Do NOT begin by implementing the entire game.
+
+Your first task is to:
+
+### Phase 0 — Audit and Architecture
+
+1. Inspect the current Replit environment.
+2. Inspect the V1 ZIP if available.
+3. Identify the runtime/language.
+4. Identify useful dependencies.
+5. Identify anything worth preserving conceptually.
+6. Identify anything that should explicitly NOT be carried forward.
+7. Design the V2 database schema.
+8. Design the character verification pipeline.
+9. Design the initial project structure.
+10. Explain your proposed architecture.
+11. Wait for approval before beginning large-scale implementation.
+
+The first implementation milestone after approval should be:
+
+### "Verified Character Foundation"
+
+That milestone should establish:
+
+* Database
+* Character schema
+* Verification status
+* Seed catalog
+* Character lookup
+* Verified-only queries
+* Basic test coverage
+
+Only after that foundation is working should the roll/gameplay systems be built.
+
+---
+
+# FINAL PRINCIPLE
+
+The previous bot tried to make AI behave like a database.
+
+V2 must do the opposite.
+
+**The database defines reality.
+The game engine defines rules.
+The AI defines personality.**
+
+Never reverse those responsibilities.
