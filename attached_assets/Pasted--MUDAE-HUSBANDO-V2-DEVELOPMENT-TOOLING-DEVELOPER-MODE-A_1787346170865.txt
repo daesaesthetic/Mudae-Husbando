@@ -1,0 +1,553 @@
+# MUDAE HUSBANDO V2
+# DEVELOPMENT TOOLING — DEVELOPER MODE
+# AUTHORITATIVE IMPLEMENTATION PROMPT
+
+You are a NEW Replit Agent working on the EXISTING Mudae Husbando V2 repository.
+
+The repository is the source of truth.
+
+You MUST inspect the existing implementation before making changes.
+
+Your task is to add a SECURE, DEVELOPER-ONLY testing system that allows authorized developers to bypass normal gameplay restrictions while testing the bot.
+
+This is development infrastructure.
+
+Do NOT redesign the existing gameplay architecture.
+
+Do NOT modify the normal behavior for ordinary users.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Add a developer-only command:
+
+/developer
+
+The command must provide a controlled development/testing mode.
+
+When developer mode is enabled for an authorized developer, that developer may perform testing actions without being constrained by normal gameplay limits such as roll availability/cooldowns.
+
+This exists specifically to make live Discord testing possible.
+
+The developer system must NOT give these privileges to normal users.
+
+==================================================
+SECURITY REQUIREMENT
+==================================================
+
+Developer access MUST be based on an explicit Discord user ID allowlist.
+
+Do NOT use:
+
+- username
+- display name
+- nickname
+- guild role
+- administrator permission
+- server ownership
+- bot permissions
+
+as the sole authorization mechanism.
+
+The authoritative authorization value must be the Discord USER ID.
+
+Use an environment variable / Replit Secret for the authorized developer IDs.
+
+Recommended configuration:
+
+DEVELOPER_USER_IDS
+
+The value may contain one or more Discord user IDs.
+
+Support a safe delimiter such as comma-separated IDs.
+
+Example conceptually:
+
+DEVELOPER_USER_IDS=123456789012345678,987654321098765432
+
+Do NOT hardcode my Discord ID into source code.
+
+Do NOT print the configured IDs into logs or Discord responses.
+
+If the secret is missing, /developer must not grant access to anyone.
+
+==================================================
+DEVELOPER MODE SEMANTICS
+==================================================
+
+Developer mode should be explicitly toggled.
+
+Recommended:
+
+/developer
+
+This command should display the developer controls.
+
+Provide a clear status:
+
+Developer Mode: OFF
+
+or:
+
+Developer Mode: ON
+
+Allow the authorized developer to toggle it.
+
+The state should be scoped to the developer who activated it.
+
+Do NOT create a global "everyone is in developer mode" state.
+
+Example:
+
+Developer A → Developer Mode ON
+
+Developer B → Developer Mode OFF
+
+Normal User → no developer access
+
+==================================================
+DEVELOPER PRIVILEGES
+==================================================
+
+When developer mode is ON for an authorized developer, allow development/testing actions that are normally restricted.
+
+At minimum:
+
+### Unlimited /roll testing
+
+The developer must be able to use:
+
+/roll
+
+without being blocked by normal roll availability/cooldown restrictions.
+
+IMPORTANT:
+
+This does NOT mean bypassing:
+
+- verified-character filtering
+- roll persistence
+- claim logic
+- ownership logic
+- database transactions
+
+Developer mode should bypass ONLY the gameplay restriction necessary to perform unlimited testing.
+
+The roll must still be a real persistent roll.
+
+The character must still come from the verified catalog.
+
+The resulting roll must still be claimable normally.
+
+==================================================
+DO NOT BYPASS CLAIM RULES
+==================================================
+
+Developer mode MUST NOT automatically claim rolls.
+
+Developer testing must still be able to test:
+
+- public claiming
+- another-user claiming
+- first-claim-wins
+- duplicate claim rejection
+- expiration
+- ownership
+
+The developer roll should behave like a normal roll except for the specific roll-limit/cooldown restriction being bypassed.
+
+==================================================
+DEVELOPMENT ACTIONS
+==================================================
+
+Design the developer command so that additional development actions can be added later.
+
+For the initial implementation, support:
+
+### Roll Without Limit
+
+Allows the authorized developer to roll without the normal roll restriction.
+
+### Optional Test Utilities
+
+If the existing architecture makes them safe and straightforward, provide developer-only controls for:
+
+- reset developer roll cooldown
+- force a fresh roll
+- inspect developer mode status
+
+Do NOT add destructive database controls yet.
+
+Do NOT add arbitrary SQL execution.
+
+Do NOT add database deletion.
+
+Do NOT add global reset commands.
+
+==================================================
+FUTURE EXTENSIBILITY
+==================================================
+
+Structure the developer functionality so future tools can be added without rewriting /developer.
+
+Potential future commands may include:
+
+/developer grant
+/developer inspect
+/developer reset
+/developer test
+/developer character
+
+DO NOT implement those unless required for this milestone.
+
+The immediate objective is a secure foundation for developer testing.
+
+==================================================
+STATE MANAGEMENT
+==================================================
+
+Developer mode should preferably NOT require a permanent database schema change.
+
+If the existing architecture allows it, keep developer-mode state in memory.
+
+However, authorization must always be checked against the developer allowlist.
+
+If the bot restarts, developer mode may reset to OFF.
+
+This is acceptable.
+
+The developer can simply enable it again.
+
+Do NOT store developer privileges as ordinary user data.
+
+Do NOT add a "developer = true" field to mudae_users.
+
+Developer status comes from the secure configuration.
+
+==================================================
+DATABASE SAFETY
+==================================================
+
+Do not modify the existing character, roll, collection, wishlist, or user schema unless absolutely necessary.
+
+The current tables remain authoritative:
+
+mudae_characters
+mudae_users
+mudae_collections
+mudae_wishlists
+mudae_rolls
+
+Do not create a second roll system.
+
+Do not create a second ownership system.
+
+Developer rolls must use the existing roll creation path.
+
+==================================================
+ROLL ARCHITECTURE
+==================================================
+
+The existing roll system must remain authoritative.
+
+Developer mode should integrate at the smallest reasonable point.
+
+Preferred conceptual flow:
+
+/developer
+     ↓
+authorization
+     ↓
+developer mode state
+
+Then:
+
+/roll
+     ↓
+developer-mode check
+     ↓
+normal roll service/database logic
+     ↓
+persistent roll
+
+The developer bypass should occur ONLY at the appropriate normal restriction.
+
+Do not duplicate the roll-generation logic.
+
+Do not create a separate developer roll engine.
+
+==================================================
+NORMAL USERS
+==================================================
+
+For unauthorized users:
+
+/developer
+
+must NOT expose developer controls.
+
+Prefer a clean response such as:
+
+"You do not have permission to use developer tools."
+
+Do not reveal:
+
+- whether the user ID is on an allowlist
+- configured developer IDs
+- implementation details
+- environment variables
+
+Unauthorized users must continue to experience normal gameplay.
+
+==================================================
+DEVELOPER UX
+==================================================
+
+The developer interface should be clear and compact.
+
+Example conceptual response:
+
+╭────────────────────────────╮
+│      DEVELOPER MODE        │
+├────────────────────────────┤
+│ Status: ENABLED            │
+│                            │
+│ Unlimited Rolls: ENABLED  │
+╰────────────────────────────╯
+
+Use the existing Discord presentation style.
+
+Do not create a completely new visual design system.
+
+==================================================
+LOGGING
+==================================================
+
+Developer actions may be logged for debugging.
+
+However:
+
+DO NOT log:
+
+- Discord tokens
+- environment secrets
+- developer allowlist contents
+
+It is acceptable to log that an authorized developer enabled developer mode.
+
+Keep logs concise.
+
+==================================================
+TEST REQUIREMENTS
+==================================================
+
+Add automated tests for developer authorization and behavior.
+
+At minimum test:
+
+1. Authorized developer is recognized.
+2. Unauthorized user is rejected.
+3. Missing developer configuration grants nobody access.
+4. Multiple configured developer IDs work.
+5. Developer mode can be enabled.
+6. Developer mode can be disabled.
+7. Developer mode is scoped to the developer.
+8. Developer mode does not affect another user's state.
+9. Developer /roll bypasses the normal roll restriction.
+10. Developer /roll still creates a real persistent roll.
+11. Developer /roll still uses a verified character.
+12. Developer rolls still use the normal claim system.
+13. Developer mode does not automatically claim the roll.
+14. Normal users retain normal roll restrictions.
+
+If the current test architecture does not support Discord interaction testing directly, test the authorization and developer-mode logic as isolated functions.
+
+Do not introduce a large testing framework solely for this feature.
+
+==================================================
+MILESTONE 2 PROTECTION
+==================================================
+
+The following systems are protected and must continue to work:
+
+- /roll
+- verified-only character selection
+- persistent rolls
+- public claim buttons
+- /claim
+- claiming by another user
+- first-claim-wins
+- SELECT ... FOR UPDATE
+- roll expiration
+- ownership persistence
+- duplicate ownership quantities
+- PostgreSQL persistence
+
+Developer mode must not bypass or alter these systems.
+
+==================================================
+MILESTONE 3 PROTECTION
+==================================================
+
+The following systems must continue to work:
+
+- /collection
+- collection pagination
+- stable ordering
+- /profile
+- unique-character statistics
+- total-copy statistics
+- /search
+- verified-only search
+- /favorite
+- /wishlist
+
+Developer tooling must not modify their behavior.
+
+==================================================
+OUT OF SCOPE
+==================================================
+
+Do NOT implement:
+
+- economy
+- trading
+- marketplace
+- AI
+- character generation
+- database reset
+- arbitrary database commands
+- production admin dashboard
+- web-based developer panel
+- guild-wide developer mode
+- role-based developer permissions
+- user impersonation
+- automatic ownership grants
+- character deletion
+- character modification
+- production data wiping
+
+Keep this milestone focused.
+
+==================================================
+VALIDATION
+==================================================
+
+Before declaring completion:
+
+Run:
+
+1. TypeScript typecheck
+2. API build
+3. automated tests
+4. formatting validation if available
+5. health endpoint validation
+
+Then manually test in Discord.
+
+Developer testing checklist:
+
+### Authorization
+
+- Authorized developer → /developer
+- Unauthorized user → /developer
+- Developer mode OFF
+- Developer mode ON
+- Developer mode OFF again
+
+### Unlimited rolls
+
+With developer mode ON:
+
+- perform multiple /roll commands rapidly
+- confirm rolls continue succeeding
+- confirm each roll is persistent
+- confirm characters are verified
+- confirm normal character cards appear
+
+### Claim
+
+- developer rolls a character
+- another user claims it
+- developer attempts to claim after the other user
+- confirm first-claim-wins remains intact
+
+### Normal gameplay
+
+Disable developer mode.
+
+Confirm:
+
+- normal roll restrictions return
+- /roll behavior is unchanged for ordinary users
+
+### Restart
+
+Restart the bot.
+
+Confirm:
+
+- developer mode resets safely if stored in memory
+- authorization still works
+- normal gameplay remains intact
+
+==================================================
+FINAL REPORT
+==================================================
+
+When complete, return:
+
+# Developer Mode Implementation Summary
+
+# Authorization Design
+
+# Developer Controls
+
+# Files Added
+
+# Files Modified
+
+# Database Changes
+
+# Roll Integration
+
+# Security Considerations
+
+# Automated Tests
+
+# Validation Results
+
+# Manual Discord Testing
+
+# Remaining Known Issues
+
+# Out-of-Scope Items
+
+For each item, be specific.
+
+Do not claim live Discord testing passed unless it was actually performed.
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+This is a focused development-tooling milestone.
+
+Inspect the current repository first.
+
+Preserve the existing architecture.
+
+Use the existing roll system.
+
+Use the existing database.
+
+Use secure Discord user-ID authorization.
+
+Do not hardcode secrets.
+
+Do not create a second gameplay system.
+
+Do not weaken normal-user security.
+
+The purpose of this feature is to make development and live testing easier WITHOUT changing the actual game's rules.
