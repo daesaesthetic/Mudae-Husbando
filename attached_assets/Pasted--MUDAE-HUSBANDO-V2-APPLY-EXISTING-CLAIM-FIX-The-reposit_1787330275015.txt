@@ -1,0 +1,347 @@
+# MUDAE HUSBANDO V2 — APPLY EXISTING CLAIM FIX
+
+The repository has already been imported into this Replit project.
+
+DO NOT create another project.
+DO NOT create a new repository.
+DO NOT ask me to import/setup the repository again.
+DO NOT leave the repository unchanged.
+
+Your task is to inspect the CURRENT imported repository and make ONE focused gameplay correction.
+
+The existing project is the current Mudae Husbando V2 implementation.
+
+It already has:
+- PostgreSQL persistence
+- an existing verified character catalog
+- /roll
+- /claim
+- persistent roll records
+- character cards
+- Claim Character buttons
+- transactional ownership
+- roll expiration
+- claimed_by / rolled_by state
+- Discord integration
+
+The bot currently works.
+
+## THE BUG
+
+The current claim authorization incorrectly requires the user attempting to claim a roll to be the same user who created the roll.
+
+The current behavior is effectively:
+
+    User A uses /roll
+        ↓
+    User B clicks Claim Character
+        ↓
+    "Only the user who rolled this character can claim it"
+
+THIS IS WRONG.
+
+## REQUIRED GAMEPLAY RULE
+
+Rolls are PUBLIC.
+
+Anyone who can access the roll message may attempt to claim the character.
+
+The first successful claim wins.
+
+Example:
+
+    User A
+      ↓
+    /roll
+      ↓
+    Sasuke Uchiha appears
+      ↓
+    User B clicks Claim Character
+      ↓
+    User B receives Sasuke
+
+User A does NOT have priority merely because User A rolled the character.
+
+If User A claims first:
+
+    User A receives Sasuke.
+
+If User B claims first:
+
+    User B receives Sasuke.
+
+After the first successful claim, everyone else receives an already-claimed response.
+
+## IMPORTANT DATA DISTINCTION
+
+Preserve the distinction between:
+
+    rolled_by
+
+and:
+
+    claimed_by
+
+They represent different things.
+
+`rolled_by`:
+The Discord user who generated the roll.
+
+`claimed_by`:
+The Discord user who successfully obtained the character.
+
+They may be different users.
+
+Example:
+
+    rolled_by  = User A
+    claimed_by = User B
+
+is completely valid.
+
+DO NOT remove `rolled_by`.
+
+DO NOT replace it with `claimed_by`.
+
+DO NOT make them the same field.
+
+## CLAIM TRANSACTION
+
+Inspect the existing claim service and database implementation.
+
+Preserve the existing transactional/race-safe claim behavior.
+
+The transaction should conceptually perform:
+
+    BEGIN TRANSACTION
+
+    Verify roll exists
+    Verify roll has not expired
+    Verify roll has not already been claimed
+    Verify character is still verified
+
+    Create ownership for the CURRENT CLAIMING USER
+
+    Set:
+        claimed = true
+        claimed_by = CURRENT CLAIMING USER
+        claimed_at = current time
+
+    COMMIT
+
+The transaction must NOT require:
+
+    claiming_user == rolled_by
+
+Remove only that authorization restriction.
+
+Do not weaken any other validation.
+
+## FIRST-CLAIM-WINS
+
+The existing concurrency protection must remain intact.
+
+If:
+
+    User A
+    User B
+
+attempt to claim the same roll at approximately the same time:
+
+Exactly ONE must succeed.
+
+The winner receives ownership.
+
+The loser receives an already-claimed response.
+
+There must never be two successful ownership awards for one roll.
+
+## CLAIM BUTTON
+
+The existing `Claim Character` Discord button must be publicly claimable.
+
+Do NOT restrict the button to the user who rolled the character.
+
+Its persistent roll ID/custom ID mechanism should remain intact.
+
+Do not redesign the button.
+
+## /claim
+
+Do not unnecessarily redesign `/claim`.
+
+If `/claim` currently means:
+
+    claim the user's latest active roll
+
+it may continue to do that.
+
+The underlying claim service must still be shared with the button so there is only ONE authoritative claim implementation.
+
+The important distinction is:
+
+- the public Claim Character button can be used by anyone
+- `/claim` may target the invoking user's latest active roll
+- the underlying transactional claim service determines the winner
+
+Do not duplicate claim logic.
+
+## ERROR MESSAGES
+
+Remove the incorrect response:
+
+    "Only the user who rolled this character can claim it"
+
+That message should no longer occur.
+
+For a roll that was already claimed, use the existing appropriate message such as:
+
+    "That roll has already been claimed."
+
+Keep the bot's existing response style.
+
+## TESTS
+
+Inspect the existing test suite and modify/add tests to reflect the correct gameplay.
+
+Required cases:
+
+### 1. Roller claims own roll
+
+User A rolls.
+
+User A claims.
+
+Expected:
+- success
+- ownership created for User A
+- roll.claimed_by = User A
+
+### 2. Another user claims the roll
+
+User A rolls.
+
+User B claims.
+
+Expected:
+- success
+- ownership created for User B
+- roll.rolled_by = User A
+- roll.claimed_by = User B
+
+This test is REQUIRED.
+
+### 3. Third user attempts after claim
+
+User A rolls.
+
+User B successfully claims.
+
+User C attempts to claim.
+
+Expected:
+- failure
+- already claimed response
+- no additional ownership
+
+### 4. Concurrent claims
+
+Two different users attempt to claim the same roll concurrently.
+
+Expected:
+- exactly one successful claim
+- exactly one ownership award
+- exactly one claimant
+- roll marked claimed once
+
+### 5. Expired roll
+
+Any user attempts to claim an expired roll.
+
+Expected:
+- rejection
+- no ownership
+
+### 6. Character becomes unverified
+
+If the character is no longer eligible before the claim:
+
+Expected:
+- rejection
+- no ownership
+
+## DO NOT CHANGE
+
+This task is intentionally narrow.
+
+Do NOT implement:
+- AI
+- AI character generation
+- economy
+- trading
+- profiles
+- wishlist
+- favorites
+- new catalog systems
+- new rarity systems
+- new roll systems
+- new Discord commands
+- unrelated refactors
+- database replacement
+- SQLite migration
+- repository migration
+- project recreation
+
+Do NOT replace the existing PostgreSQL architecture.
+
+Do NOT attempt to recreate files from an earlier version of the project.
+
+Work with the code that actually exists in this imported repository.
+
+## WORKFLOW
+
+First inspect the existing implementation.
+
+Find:
+- current claim service
+- ownership transaction
+- roll schema/model
+- Discord claim button handler
+- /claim command
+- existing claim tests
+
+Then make the smallest necessary code change to implement public claiming.
+
+Do not modify anything until you have identified where the incorrect roller-only authorization is enforced.
+
+After making the change, run the project's existing validation commands.
+
+At minimum, run the appropriate:
+- TypeScript typecheck
+- test suite
+- formatting/lint validation if already configured
+
+Use the project's ACTUAL package manager and scripts.
+
+Do not invent commands that do not exist.
+
+## FINAL REPORT
+
+After completing the change, report:
+
+1. The exact file(s) changed
+2. Where the incorrect roller-only authorization was enforced
+3. How it was changed
+4. Confirmation that `rolled_by` remains separate from `claimed_by`
+5. Confirmation that anyone can now claim a public roll
+6. Confirmation that first-claim-wins transactional behavior remains intact
+7. Tests added/modified
+8. Actual validation results
+
+If you encounter a blocker, stop and report the blocker.
+
+Do NOT create another project or leave the repository untouched because of a setup workflow.
+
+The repository is already imported.
+
+The task is to MODIFY THE EXISTING PROJECT.

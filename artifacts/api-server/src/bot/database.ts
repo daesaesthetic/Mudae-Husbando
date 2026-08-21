@@ -5,7 +5,9 @@ const { Pool } = pg;
 
 export class GameDatabase {
   private readonly pool: pg.Pool;
-  private readonly rollExpirationMs = Number(process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000);
+  private readonly rollExpirationMs = Number(
+    process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000,
+  );
 
   constructor() {
     if (!process.env.DATABASE_URL) {
@@ -59,8 +61,18 @@ export class GameDatabase {
           (name, aliases, series, media_type, gender, source_url, image_url, description, rarity, value, status)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'verified')
          ON CONFLICT (LOWER(name), LOWER(series)) DO NOTHING`,
-        [character.name, character.aliases, character.series, character.mediaType, character.gender,
-          character.sourceUrl, character.imageUrl, character.description, character.rarity, character.value],
+        [
+          character.name,
+          character.aliases,
+          character.series,
+          character.mediaType,
+          character.gender,
+          character.sourceUrl,
+          character.imageUrl,
+          character.description,
+          character.rarity,
+          character.value,
+        ],
       );
     }
   }
@@ -79,16 +91,25 @@ export class GameDatabase {
               image_url AS "imageUrl", description, rarity, value, status
        FROM mudae_characters WHERE status = 'verified' ORDER BY RANDOM() LIMIT 1`,
     );
-    return result.rows[0] as (typeof seedCharacters[number] & { id: number }) | undefined;
+    return result.rows[0] as
+      ((typeof seedCharacters)[number] & { id: number }) | undefined;
   }
 
-  async createRoll(id: string, discordId: string, guildId: string | null, characterId: number) {
+  async createRoll(
+    id: string,
+    discordId: string,
+    guildId: string | null,
+    characterId: number,
+  ) {
     const expiresAt = new Date(Date.now() + this.rollExpirationMs);
     await this.pool.query(
       "INSERT INTO mudae_rolls (id, discord_id, guild_id, character_id, expires_at) VALUES ($1,$2,$3,$4,$5)",
       [id, discordId, guildId, characterId, expiresAt],
     );
-    await this.pool.query("UPDATE mudae_users SET rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW() WHERE discord_id = $1", [discordId]);
+    await this.pool.query(
+      "UPDATE mudae_users SET rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW() WHERE discord_id = $1",
+      [discordId],
+    );
     return expiresAt;
   }
 
@@ -97,8 +118,12 @@ export class GameDatabase {
     try {
       await client.query("BEGIN");
       const roll = await client.query<{
-        id: string; discord_id: string; character_id: number; claimed_by: string | null;
-        expires_at: Date; status: string;
+        id: string;
+        discord_id: string;
+        character_id: number;
+        claimed_by: string | null;
+        expires_at: Date;
+        status: string;
       }>(
         `SELECT r.id, r.discord_id, r.character_id, r.claimed_by, r.expires_at, c.status
          FROM mudae_rolls r JOIN mudae_characters c ON c.id = r.character_id
@@ -112,10 +137,6 @@ export class GameDatabase {
         return "invalid" as const;
       }
       const selectedRoll = roll.rows[0];
-      if (selectedRoll.discord_id !== discordId) {
-        await client.query("ROLLBACK");
-        return "wrong-user" as const;
-      }
       if (selectedRoll.claimed_by) {
         await client.query("ROLLBACK");
         return "claimed" as const;
@@ -129,13 +150,19 @@ export class GameDatabase {
         return "unverified" as const;
       }
       const characterId = selectedRoll.character_id;
-      await client.query("UPDATE mudae_rolls SET claimed_by = $2, claimed_at = NOW() WHERE id = $1", [selectedRoll.id, discordId]);
+      await client.query(
+        "UPDATE mudae_rolls SET claimed_by = $2, claimed_at = NOW() WHERE id = $1",
+        [selectedRoll.id, discordId],
+      );
       await client.query(
         `INSERT INTO mudae_collections (discord_id, character_id) VALUES ($1,$2)
          ON CONFLICT (discord_id, character_id) DO UPDATE SET quantity = mudae_collections.quantity + 1`,
         [discordId, characterId],
       );
-      await client.query("UPDATE mudae_users SET claims_count = claims_count + 1, updated_at = NOW() WHERE discord_id = $1", [discordId]);
+      await client.query(
+        "UPDATE mudae_users SET claims_count = claims_count + 1, updated_at = NOW() WHERE discord_id = $1",
+        [discordId],
+      );
       await client.query("COMMIT");
       return { status: "success" as const, characterId };
     } catch (error) {
@@ -148,9 +175,19 @@ export class GameDatabase {
 
   async getCharacter(id: number) {
     const result = await this.pool.query(
-      `SELECT id, name, series, rarity, value, description FROM mudae_characters WHERE id = $1 AND status = 'verified'`, [id],
+      `SELECT id, name, series, rarity, value, description FROM mudae_characters WHERE id = $1 AND status = 'verified'`,
+      [id],
     );
-    return result.rows[0] as { id: number; name: string; series: string; rarity: string; value: number; description: string } | undefined;
+    return result.rows[0] as
+      | {
+          id: number;
+          name: string;
+          series: string;
+          rarity: string;
+          value: number;
+          description: string;
+        }
+      | undefined;
   }
 
   async getRoll(rollId: string, discordId?: string) {
@@ -161,45 +198,84 @@ export class GameDatabase {
        WHERE r.id = $1 AND ($2::text IS NULL OR r.discord_id = $2)`,
       [rollId, discordId ?? null],
     );
-    return result.rows[0] as {
-      id: string; discordId: string; characterId: number; expiresAt: Date; claimedBy: string | null;
-      name: string; series: string; rarity: string; value: number; description: string;
-    } | undefined;
+    return result.rows[0] as
+      | {
+          id: string;
+          discordId: string;
+          characterId: number;
+          expiresAt: Date;
+          claimedBy: string | null;
+          name: string;
+          series: string;
+          rarity: string;
+          value: number;
+          description: string;
+        }
+      | undefined;
   }
 
   async search(query: string) {
     const result = await this.pool.query(
       `SELECT id, name, series, rarity, value FROM mudae_characters
        WHERE status = 'verified' AND (name ILIKE $1 OR series ILIKE $1 OR $1 = ANY(aliases))
-       ORDER BY name LIMIT 10`, [`%${query}%`],
+       ORDER BY name LIMIT 10`,
+      [`%${query}%`],
     );
-    return result.rows as { id: number; name: string; series: string; rarity: string; value: number }[];
+    return result.rows as {
+      id: number;
+      name: string;
+      series: string;
+      rarity: string;
+      value: number;
+    }[];
   }
 
   async collection(discordId: string) {
     const result = await this.pool.query(
       `SELECT c.name, c.series, c.rarity, c.value, o.quantity, o.favorite
        FROM mudae_collections o JOIN mudae_characters c ON c.id = o.character_id
-       WHERE o.discord_id = $1 ORDER BY c.name`, [discordId],
+       WHERE o.discord_id = $1 ORDER BY c.name`,
+      [discordId],
     );
-    return result.rows as { name: string; series: string; rarity: string; value: number; quantity: number; favorite: boolean }[];
+    return result.rows as {
+      name: string;
+      series: string;
+      rarity: string;
+      value: number;
+      quantity: number;
+      favorite: boolean;
+    }[];
   }
 
   async profile(discordId: string) {
     const result = await this.pool.query(
       `SELECT u.currency, u.rolls_used, u.claims_count, COUNT(o.character_id)::int AS collection_size
        FROM mudae_users u LEFT JOIN mudae_collections o ON o.discord_id = u.discord_id
-       WHERE u.discord_id = $1 GROUP BY u.discord_id`, [discordId],
+       WHERE u.discord_id = $1 GROUP BY u.discord_id`,
+      [discordId],
     );
-    return result.rows[0] as { currency: number; rolls_used: number; claims_count: number; collection_size: number } | undefined;
+    return result.rows[0] as
+      | {
+          currency: number;
+          rolls_used: number;
+          claims_count: number;
+          collection_size: number;
+        }
+      | undefined;
   }
 
   async toggleWishlist(discordId: string, characterId: number) {
-    const result = await this.pool.query("DELETE FROM mudae_wishlists WHERE discord_id = $1 AND character_id = $2 RETURNING character_id", [discordId, characterId]);
+    const result = await this.pool.query(
+      "DELETE FROM mudae_wishlists WHERE discord_id = $1 AND character_id = $2 RETURNING character_id",
+      [discordId, characterId],
+    );
     if (result.rowCount) return false;
     const character = await this.getCharacter(characterId);
     if (!character) return null;
-    await this.pool.query("INSERT INTO mudae_wishlists (discord_id, character_id) VALUES ($1,$2)", [discordId, characterId]);
+    await this.pool.query(
+      "INSERT INTO mudae_wishlists (discord_id, character_id) VALUES ($1,$2)",
+      [discordId, characterId],
+    );
     return true;
   }
 
@@ -207,7 +283,8 @@ export class GameDatabase {
     const result = await this.pool.query(
       `UPDATE mudae_collections SET favorite = NOT favorite
        WHERE discord_id = $1 AND character_id = (SELECT id FROM mudae_characters WHERE LOWER(name) = LOWER($2))
-       RETURNING favorite`, [discordId, name],
+       RETURNING favorite`,
+      [discordId, name],
     );
     return result.rows[0]?.favorite as boolean | undefined;
   }
