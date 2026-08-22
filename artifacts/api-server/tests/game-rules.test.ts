@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import pg from "pg";
 import { GameDatabase } from "../src/bot/database.js";
 import {
+  canPerformRoll,
   isAuthorizedDeveloper,
   isDeveloperModeEnabled,
   resetDeveloperModes,
@@ -182,5 +183,48 @@ describe("developer authorization and mode", () => {
     resetDeveloperModes();
     assert.equal(isDeveloperModeEnabled("dev-a"), false);
     assert.equal(isDeveloperModeEnabled("dev-b"), false);
+  });
+
+  it("bypasses normal roll availability only while enabled", async () => {
+    let normalRestrictionChecks = 0;
+    const restricted = () =>
+      canPerformRoll(false, async () => {
+        normalRestrictionChecks += 1;
+        return false;
+      });
+    assert.equal(await restricted(), false);
+    assert.equal(normalRestrictionChecks, 1);
+
+    assert.equal(
+      await canPerformRoll(true, async () => {
+        normalRestrictionChecks += 1;
+        return false;
+      }),
+      true,
+    );
+    assert.equal(normalRestrictionChecks, 1);
+  });
+
+  it("restores normal roll availability immediately after disabling mode", async () => {
+    let available = false;
+    const acquire = async () => available;
+
+    resetDeveloperModes();
+    assert.equal(await canPerformRoll(false, acquire), false);
+    assert.equal(await canPerformRoll(true, acquire), true);
+    assert.equal(toggleDeveloperMode("dev-a", "dev-a"), true);
+    assert.equal(isDeveloperModeEnabled("dev-a"), true);
+    assert.equal(
+      await canPerformRoll(isDeveloperModeEnabled("dev-a"), acquire),
+      true,
+    );
+    assert.equal(toggleDeveloperMode("dev-a", "dev-a"), false);
+    assert.equal(isDeveloperModeEnabled("dev-a"), false);
+    assert.equal(
+      await canPerformRoll(isDeveloperModeEnabled("dev-a"), acquire),
+      false,
+    );
+    available = true;
+    resetDeveloperModes();
   });
 });

@@ -20,6 +20,14 @@ export function isDeveloperModeEnabled(discordUserId: string) {
   return enabledDevelopers.has(discordUserId);
 }
 
+export async function canPerformRoll(
+  developerModeEnabled: boolean,
+  acquireNormalRollCooldown: () => Promise<boolean>,
+) {
+  if (developerModeEnabled) return true;
+  return acquireNormalRollCooldown();
+}
+
 export function toggleDeveloperMode(
   discordUserId: string,
   rawValue = process.env.DEVELOPER_USER_IDS,

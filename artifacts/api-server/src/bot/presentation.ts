@@ -145,7 +145,7 @@ export function actionResult(
 export function developerModeCard(enabled: boolean) {
   return actionResult(
     "Developer Mode",
-    `Status: **${enabled ? "ON" : "OFF"}**\nRoll limit bypass: **${enabled ? "ENABLED" : "DISABLED"}**`,
+    `Status: **${enabled ? "ON" : "OFF"}**\nNormal roll restrictions: **${enabled ? "BYPASSED" : "ACTIVE"}**`,
     enabled ? 0xf59e0b : 0x64748b,
   );
 }

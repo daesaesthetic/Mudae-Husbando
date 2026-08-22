@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import { GameDatabase } from "./database";
 import {
+  canPerformRoll,
   isDeveloperModeEnabled,
   toggleDeveloperMode,
 } from "./developer.js";
@@ -64,6 +65,8 @@ const commands = [
         .setRequired(true),
     ),
 ].map((command) => command.toJSON());
+
+const normalRollCooldownMs = Number(process.env.ROLL_COOLDOWN_MS ?? 60_000);
 
 export async function startDiscordBot() {
   if (!process.env.DISCORD_TOKEN)
@@ -142,10 +145,21 @@ export async function startDiscordBot() {
         });
       }
       if (interaction.commandName === "roll") {
-        // The current roll implementation has no cooldown or availability
-        // restriction. Keep this check at the integration point so a future
-        // normal restriction can be bypassed only for this developer.
         const developerMode = isDeveloperModeEnabled(interaction.user.id);
+        const canRoll = await canPerformRoll(developerMode, () =>
+          database.cooldowns.tryAcquire(
+            {
+              userId: interaction.user.id,
+              guildId: interaction.guildId,
+              action: "roll",
+            },
+            normalRollCooldownMs,
+          ),
+        );
+        if (!canRoll)
+          return interaction.reply(
+            "You can roll again after the current roll cooldown expires.",
+          );
         const character = await database.getRandomVerified();
         if (!character)
           return interaction.reply(

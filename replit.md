@@ -11,8 +11,10 @@ An actual Discord character-collection game with a verified-only catalog and per
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required secret: `DISCORD_TOKEN` — Discord bot token
+- Required secret: `DEVELOPER_USER_IDS` — comma-separated Discord IDs authorized to use `/developer`
 - `DATABASE_URL` is provided by the Replit database
 - Optional env: `DISCORD_CLIENT_ID` — application ID; if omitted, the bot resolves it from Discord
+- Optional env: `ROLL_COOLDOWN_MS` — normal `/roll` cooldown in milliseconds; defaults to 60 seconds
 
 ## Stack
 
@@ -41,6 +43,7 @@ An actual Discord character-collection game with a verified-only catalog and per
 - New economy, cooldown, and reward behavior must use the shared services rather than adding raw SQL to commands.
 - Schema changes are applied through `mudae_schema_migrations`; existing tables and rows are preserved.
 - Discord tokens are read only from Replit Secrets.
+- Developer Mode is process-local and resets to OFF when the bot restarts. Authorized developers can toggle it with `/developer`; while ON, normal roll cooldown restrictions are bypassed without changing claim or ownership rules.
 
 ## Product
 
