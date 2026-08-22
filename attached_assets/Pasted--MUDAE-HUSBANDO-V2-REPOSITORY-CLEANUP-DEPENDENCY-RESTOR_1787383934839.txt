@@ -1,0 +1,700 @@
+# MUDAE HUSBANDO V2
+# REPOSITORY CLEANUP + DEPENDENCY RESTORATION + BASELINE STABILIZATION
+# AUTHORITATIVE IMPLEMENTATION PROMPT
+
+You are a NEW Replit Agent working on the EXISTING Mudae Husbando V2 repository.
+
+IMPORTANT:
+
+The repository has already been audited.
+
+A clean recovery baseline exists in Git.
+
+However, the previously identified Dankest Memer files have NOT yet been removed and the cleanup has NOT yet been committed.
+
+This prompt therefore includes BOTH:
+
+1. targeted removal of the confirmed Dankest Memer artifacts
+2. restoration and validation of the Mudae V2 runtime environment
+
+Your responsibility is to complete these tasks carefully and leave the repository in a clean, runnable, verified state.
+
+Do NOT perform unrelated cleanup.
+
+Do NOT redesign gameplay.
+
+Do NOT refactor the architecture.
+
+Do NOT migrate the database.
+
+Do NOT introduce new gameplay systems.
+
+==================================================
+PROJECT IDENTITY
+==================================================
+
+This repository is:
+
+Mudae Husbando V2.
+
+It is NOT Dankest Memer.
+
+The authoritative Mudae architecture is:
+
+- Discord.js
+- PostgreSQL
+- raw `pg` database access
+- SQL-based migrations
+- existing Mudae character catalog
+- existing Mudae roll system
+- existing Mudae claim system
+- existing Mudae collections
+- existing Mudae profiles
+- existing Mudae search
+- existing Mudae favorites
+- existing Mudae wishlists
+- existing Mudae developer tooling
+- existing Mudae presentation layer
+
+Do NOT replace this architecture.
+
+==================================================
+PART 1 — REMOVE CONFIRMED DANKEST MEMER ARTIFACTS
+==================================================
+
+The following two files were positively identified during the repository-integrity audit as Dankest Memer-specific documents.
+
+They have NOT yet been removed.
+
+DELETE THESE EXACT FILES:
+
+1.
+
+`attached_assets/Pasted--DANKEST-MEMER-PHASE-0-COMPLETE-REPOSITORY-ARCHITECTURE_1787375015725.txt`
+
+2.
+
+`attached_assets/Pasted--DANKEST-MEMER-PHASE-1-CORE-GAME-FOUNDATION-Phase-0-rep_1787375326746.txt`
+
+These files are confirmed unrelated to Mudae Husbando V2.
+
+They are historical Dankest Memer project documents.
+
+They are not active runtime dependencies.
+
+They are not imported by active TypeScript source.
+
+They are not required by the Mudae build.
+
+They are not required by Replit workflows.
+
+They should be removed from the repository.
+
+==================================================
+DELETION SAFETY
+==================================================
+
+Before deleting the files:
+
+1. Confirm that both exact paths exist.
+2. Confirm that neither is referenced by active runtime code.
+3. Confirm that neither is referenced by package scripts.
+4. Confirm that neither is required by workflows.
+5. Confirm that neither is part of the Mudae runtime.
+
+Then delete ONLY those two files.
+
+DO NOT delete:
+
+- other files in `attached_assets/`
+- Mudae audit documents
+- Mudae milestone documents
+- Mudae claim-mechanic documents
+- Mudae source
+- Mudae tests
+- database files
+- configuration
+- shared infrastructure
+
+==================================================
+IMPORTANT — PROMPT/ATTACHMENT FILES
+==================================================
+
+There may also be files in `attached_assets/` containing the Mudae audit and cleanup prompts.
+
+Examples include files similar to:
+
+`Pasted--MUDAE-HUSBANDO-V2-REPOSITORY-INTEGRITY-AUDIT-READ-ONLY_*.txt`
+
+and:
+
+`Pasted--MUDAE-HUSBANDO-V2-CONFIRMED-DANKEST-MEMER-ARTIFACT-REM_*.txt`
+
+DO NOT automatically delete these.
+
+They are Mudae project-control documents.
+
+They are not the confirmed Dankest Memer implementation artifacts.
+
+Leave them alone unless they are independently determined to be unrelated to Mudae.
+
+==================================================
+DO NOT DELETE GENERIC INFRASTRUCTURE
+==================================================
+
+Do NOT remove active source files merely because their functionality resembles systems from Dankest Memer.
+
+In particular, preserve:
+
+- `economy.ts`
+- `cooldown.ts`
+- `rng.ts`
+- `validation.ts`
+
+unless future evidence conclusively establishes that a specific file is Dankest Memer-only and not part of the current Mudae architecture.
+
+Do NOT make that determination by filename alone.
+
+==================================================
+PART 2 — VERIFY THE CLEANUP
+==================================================
+
+After deleting the two confirmed files:
+
+Run:
+
+`git status`
+
+and:
+
+`git diff --name-status`
+
+and:
+
+`git diff --stat`
+
+The cleanup diff should contain the two intended deletions.
+
+There must NOT be unrelated source changes.
+
+If unrelated changes already exist in the working tree:
+
+DO NOT discard them.
+
+DO NOT reset Git.
+
+DO NOT use `git clean`.
+
+Report them separately.
+
+==================================================
+PART 3 — DO NOT COMMIT YET
+==================================================
+
+Do NOT automatically commit the cleanup.
+
+The user will review the cleanup result before committing if desired.
+
+The objective of this prompt is to prepare and validate the repository.
+
+==================================================
+PART 4 — RESTORE DECLARED DEPENDENCIES
+==================================================
+
+After the targeted cleanup is complete, inspect:
+
+- root `package.json`
+- workspace package manifests
+- lockfiles
+- pnpm workspace configuration
+- Replit configuration
+- workflow configuration
+
+Determine the repository's intended package manager.
+
+Use the existing package manager and lockfile.
+
+Restore the repository's DECLARED dependencies.
+
+The previous environment reported:
+
+`tsc: not found`
+
+and:
+
+`Cannot find package 'esbuild'`
+
+with `node_modules` missing.
+
+This indicates that dependencies need to be installed/restored.
+
+Install the dependencies already declared by the repository.
+
+DO NOT:
+
+- add unrelated dependencies
+- upgrade dependencies unnecessarily
+- migrate package managers
+- replace the lockfile without necessity
+- introduce a new ORM
+- introduce a new testing framework
+- rewrite package configuration
+
+If the existing lockfile and package manifests conflict, stop and report the conflict before making broad changes.
+
+==================================================
+PART 5 — VERIFY TYPESCRIPT
+==================================================
+
+Run the repository's existing TypeScript validation commands.
+
+At minimum, inspect package scripts and run the appropriate existing typecheck commands.
+
+Expected result:
+
+TypeScript passes.
+
+If TypeScript fails:
+
+Determine whether the problem is:
+
+- missing dependency
+- environment issue
+- existing source error
+- cleanup-related error
+
+Do NOT blindly modify source code to make TypeScript pass.
+
+Only make a minimal source correction if absolutely necessary to restore the existing baseline.
+
+==================================================
+PART 6 — VERIFY TESTS
+==================================================
+
+Run the existing test suite.
+
+Do NOT create a new test framework.
+
+Do NOT rewrite existing tests simply to make them pass.
+
+Verify the existing Mudae behavior, including where covered:
+
+- verified-only rolls
+- persistent rolls
+- claims
+- first-claim-wins
+- collections
+- pagination
+- profiles
+- search
+- favorites
+- wishlists
+- developer rules
+- ownership behavior
+
+Report actual results.
+
+==================================================
+PART 7 — VERIFY BUILD
+==================================================
+
+Run the existing API/server build.
+
+Do NOT redesign the build system.
+
+Expected:
+
+Successful production build.
+
+==================================================
+PART 8 — VERIFY HEALTH ENDPOINT
+==================================================
+
+Start the existing API workflow.
+
+Verify the existing health endpoint.
+
+Expected response:
+
+`{"status":"ok"}`
+
+Do NOT modify the health endpoint simply to make the check pass.
+
+==================================================
+PART 9 — VERIFY DATABASE
+==================================================
+
+Use the existing PostgreSQL architecture.
+
+Do NOT:
+
+- switch databases
+- reset the database
+- delete tables
+- recreate the schema
+- introduce SQLite
+- migrate to Drizzle
+- modify existing migrations
+- perform destructive database operations
+
+Verify that the existing database can start and that the authoritative Mudae tables remain available.
+
+Expected tables include:
+
+- `mudae_characters`
+- `mudae_users`
+- `mudae_collections`
+- `mudae_wishlists`
+- `mudae_rolls`
+
+Do not modify database data.
+
+==================================================
+PART 10 — VERIFY DISCORD
+==================================================
+
+Do NOT expose secrets.
+
+Check whether the Replit environment provides:
+
+`DISCORD_TOKEN`
+
+and:
+
+`DISCORD_APPLICATION_ID`
+
+If available, start the existing Discord workflow.
+
+Expected behavior:
+
+The bot reaches its ready state.
+
+If credentials are missing, report that clearly.
+
+Do not invent credentials.
+
+Do not create a new Discord application.
+
+==================================================
+PART 11 — LIVE REGRESSION
+==================================================
+
+If Discord is available, perform a minimal regression test.
+
+Verify:
+
+- `/roll`
+- Claim Character
+- `/claim`
+- `/collection`
+- collection pagination
+- `/profile`
+- `/search`
+- `/favorite`
+- `/wishlist`
+- `/developer`
+
+Do NOT intentionally alter gameplay.
+
+If a gameplay bug is found:
+
+STOP.
+
+Report it separately.
+
+Do not fix it during this baseline milestone.
+
+==================================================
+PART 12 — GLOBAL CHARACTER UNIQUENESS
+==================================================
+
+Do NOT change global uniqueness during this task.
+
+The intended rule is:
+
+ONE COPY OF EACH CHARACTER EXISTS GLOBALLY.
+
+The first successful claimant becomes the sole owner.
+
+Inspect the current implementation only.
+
+Determine whether uniqueness is:
+
+- database enforced
+- application enforced
+- partially enforced
+
+Document the result.
+
+Do not modify it.
+
+This is a future focused milestone.
+
+==================================================
+PART 13 — DEVELOPER MODE
+==================================================
+
+Do NOT change developer mode during this task.
+
+The known concern is:
+
+Developer Mode may not currently affect `/roll` availability as intended.
+
+Inspect the current implementation and document the actual behavior.
+
+Do not fix it here.
+
+This will be handled separately.
+
+==================================================
+PART 14 — SOURCE MODIFICATION POLICY
+==================================================
+
+Prefer ZERO source-code modifications.
+
+A source modification is allowed ONLY if:
+
+1. it is required to restore the existing project to a runnable state,
+2. the problem is clearly demonstrated,
+3. the fix is minimal,
+4. it does not redesign gameplay,
+5. it does not change intended behavior.
+
+Do not perform refactoring.
+
+==================================================
+PART 15 — NO ARCHITECTURAL CHANGES
+==================================================
+
+Do NOT:
+
+- migrate PostgreSQL to SQLite
+- migrate raw SQL to Drizzle
+- introduce an ORM
+- rewrite the Discord client
+- rewrite migrations
+- replace the catalog
+- replace roll handling
+- replace claim handling
+- add AI
+- add economy gameplay
+- add trading
+- add marketplace
+- add events
+- add new character import systems
+
+==================================================
+PART 16 — GIT SAFETY
+==================================================
+
+Do NOT:
+
+- reset Git
+- revert the baseline
+- rewrite Git history
+- use `git clean`
+- force checkout files
+- discard unrelated user changes
+- automatically commit
+
+At the end, show:
+
+`git status`
+
+`git diff --name-status`
+
+`git diff --stat`
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+The task is successful when:
+
+1. The two confirmed Dankest Memer files are removed.
+2. No unrelated files are deleted.
+3. Dependencies are restored using the existing project configuration.
+4. TypeScript passes.
+5. Existing tests execute.
+6. Existing tests pass, or failures are clearly documented.
+7. API build succeeds.
+8. Health endpoint succeeds if the environment allows it.
+9. PostgreSQL startup succeeds if database credentials are available.
+10. Discord startup succeeds if Discord credentials are available.
+11. Existing Mudae commands remain intact.
+12. No gameplay architecture is changed.
+13. No database data is destroyed.
+14. No Dankest Memer implementation is introduced.
+15. The working tree clearly shows only intentional changes.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return exactly:
+
+# Mudae Husbando V2 — Cleanup & Baseline Restoration
+
+## Confirmed Dankest Memer Files Removed
+
+List the two exact files removed.
+
+## Cleanup Verification
+
+Report:
+
+- `git status`
+- `git diff --name-status`
+- `git diff --stat`
+
+Confirm whether any unrelated files changed.
+
+## Dependency Restoration
+
+Report:
+
+- package manager
+- install command
+- installation result
+- lockfile changes
+- package manifest changes
+
+## TypeScript
+
+Report exact command and result.
+
+## Tests
+
+Report:
+
+- exact command
+- number executed
+- number passed
+- number failed
+
+Do not claim success if tests did not execute.
+
+## Build
+
+Report exact command and result.
+
+## Health Endpoint
+
+Report whether it was tested and its result.
+
+## Database
+
+Report:
+
+- connection result
+- startup/migration result
+- schema changes
+- data changes
+
+Expected:
+
+No intentional database changes.
+
+## Discord
+
+Report:
+
+- whether credentials were available
+- whether bot reached ready state
+- whether live regression was possible
+
+Never expose secrets.
+
+## Gameplay Regression
+
+Report the status of:
+
+- `/roll`
+- `/claim`
+- Claim Character
+- `/collection`
+- pagination
+- `/profile`
+- `/search`
+- `/favorite`
+- `/wishlist`
+- `/developer`
+
+## Global Character Uniqueness
+
+Document the current implementation only.
+
+Do not modify it.
+
+## Developer Mode
+
+Document the current implementation only.
+
+Do not modify it.
+
+## Source Changes
+
+List every source file changed.
+
+If none:
+
+`No source files modified.`
+
+## Database Changes
+
+State whether database schema or data changed.
+
+Expected:
+
+`No database changes.`
+
+## Remaining Issues
+
+Separate into:
+
+### Environment
+### Gameplay
+### Architecture
+### Testing
+
+## Recommended Next Step
+
+Recommend the next focused milestone.
+
+Do not implement it.
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+The repository has an existing committed recovery baseline.
+
+Preserve it.
+
+Remove ONLY the two confirmed Dankest Memer artifacts specified in this prompt.
+
+Restore ONLY the dependencies already declared by the project.
+
+Validate the existing Mudae implementation.
+
+Do not redesign anything.
+
+Do not discard user changes.
+
+Do not guess.
+
+If something is ambiguous, report it.
+
+The goal is:
+
+CLEAN Mudae repository
++
+RESTORED dependencies
++
+PASSING validation
++
+RUNNABLE Discord bot
++
+NO gameplay changes.
+
+This is a baseline stabilization milestone, not a gameplay development milestone.
