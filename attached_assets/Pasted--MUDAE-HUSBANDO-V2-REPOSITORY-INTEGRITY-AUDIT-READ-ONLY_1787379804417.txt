@@ -1,0 +1,630 @@
+# MUDAE HUSBANDO V2 — REPOSITORY INTEGRITY AUDIT
+# READ-ONLY — NO MODIFICATIONS AUTHORIZED
+
+You are a NEW Replit Agent inspecting the EXISTING repository.
+
+IMPORTANT:
+
+This is an AUDIT ONLY.
+
+DO NOT modify any files.
+
+DO NOT delete anything.
+
+DO NOT rename anything.
+
+DO NOT install dependencies.
+
+DO NOT run migrations.
+
+DO NOT alter the database.
+
+DO NOT run formatting tools that modify files.
+
+DO NOT "fix" issues discovered during the audit.
+
+DO NOT commit changes.
+
+Your sole task is to inspect the current repository and report its actual state.
+
+==================================================
+BACKGROUND
+==================================================
+
+This repository is intended to contain:
+
+Mudae Husbando V2
+
+However, there is now a serious repository-integrity concern.
+
+Code and implementation instructions intended for a DIFFERENT project, the Dankest Memer Bot, may have accidentally been entered into this repository.
+
+Therefore, we need to determine whether the current repository contains:
+
+1. legitimate Mudae Husbando V2 implementation
+2. accidental Dankest Memer implementation
+3. shared infrastructure that is still valid
+4. conflicting or duplicated systems
+5. incorrect database/schema structures
+6. incorrect dependencies
+7. incorrect configuration
+8. incorrect tests
+9. incorrect documentation
+10. mixed architecture caused by cross-project contamination
+
+DO NOT assume the repository is correct.
+
+DO NOT assume the repository is corrupted.
+
+Inspect and report evidence.
+
+==================================================
+AUDIT OBJECTIVE
+==================================================
+
+Determine the ACTUAL current architecture of the repository.
+
+The report must allow another engineer to decide whether the project should be:
+
+A. repaired in place
+
+B. partially reverted
+
+C. have contaminated files removed
+
+D. restored from a known-good commit
+
+E. rebuilt from the last verified Mudae state
+
+F. or left unchanged
+
+Do not make that decision yourself unless the evidence makes one option overwhelmingly obvious.
+
+==================================================
+1. REPOSITORY STRUCTURE
+==================================================
+
+Inspect the complete repository structure.
+
+Report:
+
+- top-level directories
+- important source directories
+- database directories
+- test directories
+- configuration files
+- package/workspace structure
+- Replit configuration
+- build configuration
+- deployment/workflow configuration
+
+Identify anything that appears unrelated to Mudae Husbando.
+
+==================================================
+2. PACKAGE / DEPENDENCY AUDIT
+==================================================
+
+Inspect:
+
+- package.json
+- workspace package.json files
+- lockfiles
+- dependency configuration
+
+Identify:
+
+- Discord libraries
+- database libraries
+- PostgreSQL libraries
+- SQLite libraries
+- Drizzle
+- testing frameworks
+- AI/model libraries
+- economy-related libraries
+- dependencies that appear specific to Dankest Memer
+- suspicious or duplicated dependencies
+
+For every suspicious dependency, explain why it appears suspicious.
+
+Do not remove anything.
+
+==================================================
+3. SOURCE CODE AUDIT
+==================================================
+
+Inspect the source tree.
+
+Identify all major systems.
+
+For each system, classify it as:
+
+[Mudae]
+[Dankest Memer]
+[Shared/Infrastructure]
+[Unknown]
+[Conflicting]
+
+Examples of systems to specifically look for:
+
+Mudae systems:
+
+- character catalog
+- verified characters
+- character search
+- character aliases
+- rarity
+- value
+- rolls
+- claims
+- global character uniqueness
+- collections
+- profile
+- favorites
+- wishlist
+- developer mode
+- Discord character cards
+
+Dankest Memer systems:
+
+- economy
+- currency
+- balances
+- transactions
+- cooldown services
+- migration runner
+- RNG helpers
+- ventures
+- scavenge
+- inspect
+- memes
+- items
+- gambling
+- Dankest Memer-specific commands
+- Dankest Memer-specific services
+
+Do not assume a generic service belongs to either project.
+
+Explain the evidence.
+
+==================================================
+4. DATABASE AUDIT
+==================================================
+
+Inspect the CURRENT database architecture and schema definitions.
+
+Identify:
+
+- database type
+- connection configuration
+- database initialization
+- migrations
+- startup schema creation
+- tables
+- indexes
+- constraints
+- foreign keys
+- unique constraints
+
+Specifically identify whether the repository contains structures associated with:
+
+Mudae:
+
+- mudae_characters
+- mudae_users
+- mudae_collections
+- mudae_wishlists
+- mudae_rolls
+
+Dankest Memer:
+
+- economy tables
+- transactions
+- cooldowns
+- venture/scavenge data
+- inventory
+- item systems
+- unrelated gameplay tables
+
+Report whether both architectures appear to coexist.
+
+DO NOT modify the database.
+
+==================================================
+5. GLOBAL CHARACTER UNIQUENESS
+==================================================
+
+The current intended Mudae gameplay rule is:
+
+ONE COPY OF EACH CHARACTER EXISTS GLOBALLY.
+
+The first successful claimant becomes the sole owner.
+
+Determine whether the CURRENT repository actually enforces this.
+
+Inspect:
+
+- database constraints
+- claim transactions
+- ownership inserts
+- collection logic
+- duplicate handling
+- roll generation
+
+Report whether global uniqueness is:
+
+[Database enforced]
+[Application enforced]
+[Partially enforced]
+[Not enforced]
+[Unknown]
+
+Explain why.
+
+==================================================
+6. ROLL / CLAIM AUDIT
+==================================================
+
+Trace the current:
+
+/roll
+
+/claim
+
+Claim Character button
+
+systems.
+
+Determine:
+
+- where rolls are created
+- how expiration works
+- how claims work
+- how first-claim-wins works
+- whether claims are transactional
+- whether another user can claim a roll
+- whether global character uniqueness is enforced
+- whether developer mode affects rolls
+
+Do not modify anything.
+
+==================================================
+7. DEVELOPER MODE AUDIT
+==================================================
+
+Inspect the current /developer implementation.
+
+Determine:
+
+- authorization mechanism
+- developer user configuration
+- state storage
+- toggle implementation
+- how /roll checks developer mode
+- whether ON and OFF use the same state
+- whether state can become stale
+- whether multiple developer-state representations exist
+
+The known historical problem was:
+
+Developer Mode could be toggled OFF while /roll continued behaving as though developer mode remained active.
+
+Determine whether that bug still exists in the current repository.
+
+Do NOT fix it.
+
+==================================================
+8. CHARACTER COMMAND AUDIT
+==================================================
+
+Inspect:
+
+/search
+
+/favorite
+
+/wishlist
+
+Determine whether they accept:
+
+- names
+- aliases
+- partial names
+- canonical IDs
+
+Determine how character resolution works.
+
+Canonical character IDs may remain internal identifiers.
+
+Report whether the player-facing UX still incorrectly requires canonical IDs.
+
+==================================================
+9. PRESENTATION AUDIT
+==================================================
+
+Inspect the Discord presentation layer.
+
+Determine which commands use:
+
+- embeds
+- plain text
+- buttons
+- reusable presentation helpers
+
+Inspect the character card.
+
+Determine whether the current presentation is consistent with the Mudae Husbando design.
+
+Do not redesign it.
+
+==================================================
+10. TEST AUDIT
+==================================================
+
+Inspect all tests.
+
+Classify each test as:
+
+[Mudae]
+[Dankest Memer]
+[Shared]
+[Unknown]
+
+Determine whether tests actually validate:
+
+- roll creation
+- claim behavior
+- first-claim-wins
+- global character uniqueness
+- collection
+- pagination
+- profile
+- search
+- favorite
+- wishlist
+- developer mode
+
+Identify suspicious tests that appear to belong to Dankest Memer.
+
+==================================================
+11. DOCUMENTATION AUDIT
+==================================================
+
+Inspect:
+
+- README
+- replit.md
+- comments
+- setup instructions
+- migration documentation
+- environment variable documentation
+
+Identify references to:
+
+- Mudae Husbando
+- Dankest Memer
+- unrelated projects
+
+Report contradictions.
+
+==================================================
+12. CONFIGURATION / ENVIRONMENT AUDIT
+==================================================
+
+Inspect configuration references WITHOUT exposing secret values.
+
+Identify expected variables such as:
+
+DISCORD_TOKEN
+DISCORD_APPLICATION_ID
+DEVELOPER_USER_IDS
+
+and any unrelated environment variables.
+
+NEVER print secret values.
+
+==================================================
+13. CROSS-PROJECT CONTAMINATION REPORT
+==================================================
+
+Create a table:
+
+| Path | Classification | Evidence | Risk |
+|------|----------------|----------|------|
+
+Classifications:
+
+Mudae
+Dankest Memer
+Shared
+Unknown
+Conflicting
+
+Risk:
+
+Low
+Medium
+High
+Critical
+
+Do not make changes.
+
+==================================================
+14. KNOWN-GOOD MILESTONES
+==================================================
+
+Compare the current repository against the following known Mudae state.
+
+Milestone 2:
+
+- /roll
+- /claim
+- Claim Character button
+- persistent rolls
+- expiration
+- first-claim-wins
+- another-user claiming
+- PostgreSQL persistence
+
+Milestone 3:
+
+- /collection
+- pagination
+- stable ordering
+- /profile
+- /search
+- /favorite
+- /wishlist
+- canonical character identity
+- developer tooling
+
+Current intended ownership rule:
+
+ONE GLOBAL COPY PER CHARACTER.
+
+The first successful claimant becomes the sole owner.
+
+Determine which of these are currently present.
+
+==================================================
+15. DO NOT CHANGE ANYTHING
+==================================================
+
+This requirement is absolute.
+
+Do not:
+
+- edit
+- delete
+- move
+- rename
+- migrate
+- format
+- install
+- uninstall
+- commit
+- push
+
+The repository must be byte-for-byte unchanged by this audit.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return exactly:
+
+# Repository Integrity Audit
+
+# Executive Summary
+
+State whether the repository appears:
+
+- clean
+- partially contaminated
+- heavily contaminated
+- structurally compromised
+
+Explain why.
+
+# Repository Architecture
+
+Describe the actual current architecture.
+
+# Mudae Systems Found
+
+List them.
+
+# Dankest Memer Systems Found
+
+List them.
+
+# Shared / Infrastructure Systems
+
+List them.
+
+# Conflicting Systems
+
+List them.
+
+# Database Audit
+
+Describe the actual current database architecture.
+
+# Global Character Uniqueness
+
+State whether it is actually enforced and how.
+
+# Roll / Claim Audit
+
+Describe the current implementation.
+
+# Developer Mode Audit
+
+Describe the current implementation and whether the known toggle bug remains.
+
+# Character Command Audit
+
+Describe /search, /favorite, and /wishlist.
+
+# Presentation Audit
+
+Describe current Discord presentation.
+
+# Test Audit
+
+Identify legitimate and suspicious tests.
+
+# Configuration Audit
+
+Describe relevant configuration without exposing secrets.
+
+# Cross-Project Contamination Table
+
+Provide the requested table.
+
+# Known-Good Milestone Comparison
+
+Compare current state against Milestones 2 and 3.
+
+# Risk Assessment
+
+Identify the highest-risk areas.
+
+# Recommended Recovery Strategy
+
+Provide 2–3 possible paths:
+
+1. Repair in place
+2. Restore known-good Mudae commit
+3. Rebuild from known-good state
+
+For each, explain advantages and risks.
+
+DO NOT perform any recovery.
+
+# Files That Require Special Attention
+
+List the most important files/directories another agent should inspect before making changes.
+
+# Final Recommendation
+
+Recommend the safest next step based strictly on the evidence found.
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+This is a READ-ONLY forensic audit.
+
+The repository may contain accidental code from another project.
+
+Do not trust previous agent summaries blindly.
+
+Do not "clean up" anything.
+
+Do not fix anything.
+
+Inspect first.
+
+Report evidence.
+
+Preserve the current repository exactly as found.
