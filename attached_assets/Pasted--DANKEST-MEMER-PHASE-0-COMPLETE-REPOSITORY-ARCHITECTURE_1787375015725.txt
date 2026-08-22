@@ -1,0 +1,627 @@
+# DANKEST MEMER — PHASE 0
+## COMPLETE REPOSITORY & ARCHITECTURE AUDIT
+
+We are beginning a new project based on the existing Dankest-Memer repository.
+
+The goal of this project is to develop "Dankest Memer": a Discord bot inspired by the gameplay and functionality of Dank Memer, with a broad feature set and a maintainable architecture.
+
+The repository provided to you is the source of truth for this audit.
+
+IMPORTANT:
+
+THIS PHASE IS AUDIT ONLY.
+
+DO NOT MODIFY ANY FILES.
+DO NOT INSTALL OR REMOVE DEPENDENCIES.
+DO NOT CHANGE THE DATABASE.
+DO NOT RUN MIGRATIONS.
+DO NOT CREATE NEW FEATURES.
+DO NOT REWRITE EXISTING SYSTEMS.
+DO NOT "FIX" ISSUES YOU FIND.
+
+Inspect the existing repository and report what actually exists.
+
+Do not assume a feature exists merely because it is documented, named, or planned.
+
+Clearly distinguish implemented functionality from documentation/plans/placeholders.
+
+If something cannot be verified from the repository, say:
+
+NOT VERIFIED
+
+Do not guess.
+
+---
+
+# 1. REPOSITORY STRUCTURE
+
+Inspect the complete repository and document:
+
+- project root structure
+- packages/workspaces
+- source directories
+- scripts
+- libraries
+- documentation
+- configuration
+- assets
+- database files/schema
+- tests
+- deployment/Replit configuration
+- agent/project instructions
+
+Identify the purpose of important directories and files.
+
+Do not list every trivial file; focus on architecture and meaningful components.
+
+---
+
+# 2. TECHNOLOGY STACK
+
+Identify the actual technologies currently used.
+
+Include:
+
+- language
+- runtime
+- package manager
+- Discord library
+- database technology
+- database driver/ORM if any
+- AI APIs/models if any
+- image-generation systems if any
+- external APIs
+- testing framework
+- build/typechecking tools
+- deployment/workflow configuration
+
+Use the versions present in the repository where available.
+
+---
+
+# 3. DISCORD ARCHITECTURE
+
+Trace how the bot works from startup to Discord interaction.
+
+Document:
+
+Discord login
+→ initialization
+→ command registration
+→ event handling
+→ command execution
+→ services
+→ database
+→ response
+
+Identify:
+
+- slash commands
+- prefix commands, if any
+- context/menu commands
+- events
+- command loaders/registries
+- interaction handlers
+- permission checks
+- cooldown systems
+- error handling
+- response utilities
+
+Determine whether commands are organized consistently.
+
+---
+
+# 4. CURRENT COMMAND INVENTORY
+
+Build a complete inventory of commands currently implemented.
+
+For each command, report:
+
+- command name
+- category
+- implemented status
+- important subcommands/options
+- database dependencies
+- external API dependencies
+- permissions
+- cooldowns
+- notable limitations
+
+Classify each as:
+
+🟢 IMPLEMENTED
+🟡 PARTIAL
+🔴 MISSING
+🔵 DOCUMENTED/PLANNED ONLY
+
+Do not mark something implemented simply because a command file exists.
+
+Verify the actual behavior.
+
+---
+
+# 5. ECONOMY SYSTEM
+
+Audit all existing economy functionality.
+
+Look for:
+
+- wallet/cash
+- bank
+- deposits/withdrawals
+- currency transactions
+- earning commands
+- spending commands
+- transfers
+- multipliers
+- cooldown rewards
+- transaction logging
+- anti-abuse protections
+- negative-balance prevention
+- atomicity/concurrency protection
+
+Document the actual currency model and how balances are stored and modified.
+
+Identify any risks involving race conditions or unsafe balance updates.
+
+Do not fix them.
+
+---
+
+# 6. ITEMS & INVENTORY
+
+Audit:
+
+- item definitions
+- item IDs
+- item categories
+- inventory storage
+- quantities
+- item consumption
+- item usage
+- shops
+- item pricing
+- item effects
+- collectibles
+- crates/boxes
+- trading
+- gifting
+
+Determine whether items are data-driven or hardcoded throughout commands.
+
+Identify architectural limitations.
+
+---
+
+# 7. GAMEPLAY SYSTEMS
+
+Search the repository for existing implementations related to common Dank Memer-style systems.
+
+At minimum investigate:
+
+- beg
+- work
+- crime
+- rob
+- search
+- fish
+- hunt
+- dig
+- daily
+- weekly
+- quests
+- gambling
+- blackjack
+- slots
+- coinflip
+- lottery
+- events
+- heists
+- streaks
+- voting rewards
+- achievements
+- leveling
+- prestige
+- pets
+- farming
+- crafting
+- marriage/relationships
+- profiles
+- leaderboards
+
+Do NOT assume these systems are required to already exist.
+
+For every discovered system classify its actual state.
+
+---
+
+# 8. USER DATA & PROGRESSION
+
+Audit persistent user progression.
+
+Identify:
+
+- user profiles
+- XP
+- levels
+- prestige
+- achievements
+- streaks
+- statistics
+- badges/titles
+- cooldowns
+- multipliers
+- inventory
+- pets
+- farming data
+- quest progress
+
+Document relationships between these systems.
+
+---
+
+# 9. GUILD/SERVER SYSTEMS
+
+Audit server-specific functionality.
+
+Look for:
+
+- guild configuration
+- command settings
+- currency settings
+- channels
+- blacklists
+- whitelists
+- role requirements
+- permissions
+- economy settings
+- logging
+- custom prefixes
+- admin/developer configuration
+
+Determine which data is global and which is guild-specific.
+
+---
+
+# 10. DATABASE AUDIT
+
+Inspect the actual database implementation.
+
+Document:
+
+- database technology
+- database location
+- schema
+- tables/models
+- relationships
+- primary keys
+- unique constraints
+- indexes
+- foreign keys
+- transactions
+- migrations
+- seed data
+- backup strategy
+- initialization
+- connection handling
+
+Identify whether the database can safely support a large persistent economy.
+
+Pay particular attention to:
+
+- concurrent currency updates
+- inventory updates
+- trading
+- gambling
+- cooldowns
+- transactions
+
+Do not change anything.
+
+---
+
+# 11. PERSISTENCE & DATA SAFETY
+
+Determine:
+
+- what data survives restart
+- what data is temporary
+- whether data can be lost
+- whether migrations exist
+- whether backups exist
+- whether destructive operations are protected
+- whether database writes are atomic
+- whether duplicate transactions are possible
+
+Identify concrete risks.
+
+---
+
+# 12. COOLDOWN SYSTEM
+
+Audit cooldown implementation.
+
+Determine:
+
+- where cooldowns are stored
+- whether they survive restart
+- scope: user/guild/global/etc.
+- whether concurrent requests are protected
+- whether cooldowns are centralized
+- whether commands implement their own cooldown logic
+
+Recommend whether the current system can support dozens of gameplay commands.
+
+Do not modify it.
+
+---
+
+# 13. RANDOMNESS & REWARDS
+
+Audit random/reward mechanics.
+
+Look for:
+
+- RNG utilities
+- weighted rewards
+- loot tables
+- probability handling
+- gambling calculations
+- reward generation
+- multipliers
+- streak bonuses
+
+Determine whether RNG behavior is centralized or duplicated.
+
+Do not change probability values.
+
+---
+
+# 14. SECURITY & ANTI-ABUSE
+
+Audit:
+
+- permission checks
+- developer/admin commands
+- economy exploits
+- negative amounts
+- duplicate rewards
+- race conditions
+- cooldown bypasses
+- unauthorized user data access
+- unsafe command arguments
+- SQL injection risks
+- API key handling
+- secrets
+
+Do not exploit or modify anything.
+
+Report vulnerabilities conceptually.
+
+---
+
+# 15. EXTERNAL SERVICES
+
+Identify every external dependency/API currently used.
+
+For each:
+
+- purpose
+- where it is called
+- credentials required
+- failure handling
+- rate-limit handling
+- whether the bot depends on it to start
+
+Do not expose secrets.
+
+---
+
+# 16. TESTING
+
+Audit existing tests.
+
+Report:
+
+- test framework
+- number/type of tests
+- covered systems
+- missing critical coverage
+- typechecking/linting
+- build checks
+- integration tests
+
+Determine which core systems currently have no meaningful automated coverage.
+
+---
+
+# 17. DOCUMENTATION VS REALITY
+
+Compare important documentation against the actual code.
+
+Especially inspect:
+
+- README
+- replit.md
+- docs
+- agent instructions
+- command documentation
+- planned feature lists
+
+Identify:
+
+DOCUMENTED + IMPLEMENTED
+DOCUMENTED + NOT IMPLEMENTED
+IMPLEMENTED + NOT DOCUMENTED
+CONFLICTING INFORMATION
+
+Do not change documentation.
+
+---
+
+# 18. ARCHITECTURAL HEALTH
+
+Evaluate the current architecture.
+
+Identify:
+
+### STRONG FOUNDATIONS
+Systems that should be preserved.
+
+### TECHNICAL DEBT
+Systems that work but should eventually be improved.
+
+### ARCHITECTURAL RISKS
+Systems that could become problematic as the bot grows.
+
+### REWRITE CANDIDATES
+Only identify systems that genuinely need restructuring.
+
+Do not recommend rewrites merely for style.
+
+---
+
+# 19. DANKEST MEMER FEATURE MATRIX
+
+Create a high-level feature matrix.
+
+Use:
+
+| System | Current Status | Foundation Quality | Priority |
+|---|---|---|---|
+| Economy | ... | ... | ... |
+| Inventory | ... | ... | ... |
+| Items | ... | ... | ... |
+| Gambling | ... | ... | ... |
+| Jobs | ... | ... | ... |
+| Crime | ... | ... | ... |
+| Robbery | ... | ... | ... |
+| Fishing | ... | ... | ... |
+| Hunting | ... | ... | ... |
+| Digging | ... | ... | ... |
+| Pets | ... | ... | ... |
+| Farming | ... | ... | ... |
+| Quests | ... | ... | ... |
+| Achievements | ... | ... | ... |
+| Levels | ... | ... | ... |
+| Prestige | ... | ... | ... |
+| Trading | ... | ... | ... |
+| Profiles | ... | ... | ... |
+| Leaderboards | ... | ... | ... |
+| Events | ... | ... | ... |
+
+Add additional systems discovered in the repository.
+
+---
+
+# 20. RECOMMENDED DEVELOPMENT ORDER
+
+Based strictly on the actual repository, propose a phased development roadmap.
+
+Prioritize foundations before large numbers of commands.
+
+Consider dependencies such as:
+
+Database
+→ Economy
+→ Inventory/Items
+→ Cooldowns
+→ Transactions
+→ Core gameplay
+→ Progression
+→ Social systems
+→ Advanced systems
+
+Do not force this exact order if the repository suggests a better one.
+
+Explain dependencies between phases.
+
+---
+
+# 21. FIRST IMPLEMENTATION TASK
+
+Recommend EXACTLY ONE first implementation task after Phase 0.
+
+It should be the highest-value foundation task based on the actual repository.
+
+Do not implement it now.
+
+---
+
+# 22. FINAL REPORT FORMAT
+
+Return exactly these sections:
+
+## EXECUTIVE SUMMARY
+
+## REPOSITORY STRUCTURE
+
+## TECHNOLOGY STACK
+
+## DISCORD ARCHITECTURE
+
+## COMMAND INVENTORY
+
+## ECONOMY
+
+## ITEMS & INVENTORY
+
+## GAMEPLAY SYSTEMS
+
+## USER & PROGRESSION
+
+## GUILD SYSTEMS
+
+## DATABASE
+
+## PERSISTENCE & DATA SAFETY
+
+## COOLDOWNS
+
+## RANDOMNESS & REWARDS
+
+## SECURITY & ANTI-ABUSE
+
+## EXTERNAL SERVICES
+
+## TESTING
+
+## DOCUMENTATION VS REALITY
+
+## ARCHITECTURAL HEALTH
+
+## DANKEST MEMER FEATURE MATRIX
+
+## RECOMMENDED ROADMAP
+
+## FIRST IMPLEMENTATION TASK
+
+## UNVERIFIED / UNKNOWN
+
+---
+
+# FINAL RULES
+
+This is an AUDIT ONLY.
+
+Do not modify anything.
+
+Do not install dependencies.
+
+Do not migrate data.
+
+Do not seed new data.
+
+Do not reset the database.
+
+Do not implement fixes.
+
+Do not invent functionality that is not present.
+
+If documentation says something exists but the code does not implement it, report it as NOT IMPLEMENTED.
+
+If code exists but its behavior cannot be verified safely, report it as NOT VERIFIED.
+
+Use the repository itself as the source of truth.
+
+Stop after the final report.
