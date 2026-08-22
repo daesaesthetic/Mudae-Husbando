@@ -1,0 +1,782 @@
+# MUDAE HUSBANDO V2
+# DEVELOPER MODE IMPLEMENTATION
+# AUTHORITATIVE DEVELOPMENT PROMPT
+
+You are a NEW Replit Agent working on the EXISTING Mudae Husbando V2 repository.
+
+AUTHORITATIVE BASELINE:
+
+This project is based on the committed:
+
+Mudae Husbando V2 Baseline
+
+repository.
+
+Treat the current repository state as the sole authoritative implementation.
+
+Do NOT use older Mudae repositories as implementation sources.
+
+Do NOT import code from the previous Milestone-2, Milestone-2.1, or other repositories.
+
+Do NOT import any Dankest Memer architecture.
+
+The repository has already been:
+
+- cleaned of confirmed Dankest Memer artifacts
+- dependency-restored
+- typechecked
+- tested
+- built
+- connected to PostgreSQL
+- verified through the health endpoint
+- connected to Discord
+- manually regression-tested for the existing commands
+
+The baseline is known-good.
+
+Your task is now to implement ONE focused feature:
+
+DEVELOPER MODE.
+
+==================================================
+OBJECTIVE
+==================================================
+
+The current `/developer` command exists, but developer mode does not currently affect `/roll`.
+
+The current implementation has:
+
+- authorized developer IDs
+- an in-memory enabled-developer set
+- `/developer` toggle behavior
+
+However, `/roll` currently has no normal availability/cooldown restriction for developer mode to bypass.
+
+Therefore developer mode currently has no meaningful gameplay effect.
+
+Correct this.
+
+The goal is to provide an explicit development/testing mode that allows authorized developers to perform unlimited rolls and other supported developmental testing without normal roll restrictions.
+
+==================================================
+CORE BEHAVIOR
+==================================================
+
+Developer Mode must have two states for each authorized developer:
+
+OFF
+
+and:
+
+ON
+
+When OFF:
+
+The developer behaves exactly like a normal user.
+
+When ON:
+
+The developer receives the intended development/testing privileges.
+
+The mode must be explicitly toggled through:
+
+`/developer`
+
+==================================================
+AUTHORIZATION
+==================================================
+
+Only users already authorized by the existing developer authorization system may use `/developer`.
+
+Do NOT replace the existing authorization mechanism.
+
+Use the existing:
+
+`DEVELOPER_USER_IDS`
+
+configuration and existing authorization logic.
+
+Unauthorized users must:
+
+- be unable to enable developer mode
+- be unable to disable developer mode
+- receive the existing appropriate authorization response
+
+Do not expose developer IDs or secrets.
+
+==================================================
+TOGGLE SEMANTICS
+==================================================
+
+The `/developer` command must behave as a real toggle.
+
+First activation:
+
+`/developer`
+
+→ Developer Mode ON
+
+Second activation:
+
+`/developer`
+
+→ Developer Mode OFF
+
+The state must be deterministic.
+
+The response must clearly tell the developer whether the mode is now:
+
+ON
+
+or:
+
+OFF
+
+Do not use ambiguous responses such as:
+
+"Developer command received."
+
+==================================================
+CRITICAL REQUIREMENT — OFF MUST ACTUALLY TURN IT OFF
+==================================================
+
+This is the primary bug being addressed.
+
+When developer mode is turned OFF:
+
+ALL developer-mode privileges must immediately stop applying to that developer.
+
+There must be no stale state where:
+
+- `/developer` says OFF
+- but `/roll` still behaves as developer mode
+
+The implementation must make the ON/OFF state used by gameplay authoritative.
+
+Do not maintain multiple independent developer-mode states.
+
+There must be ONE authoritative state check.
+
+==================================================
+DEVELOPER ROLL BEHAVIOR
+==================================================
+
+When Developer Mode is ON:
+
+The developer must be able to perform unlimited developmental `/roll` operations without normal roll restrictions.
+
+This specifically means:
+
+- no normal roll cooldown restriction
+- no roll-count restriction
+- no requirement to wait for normal roll availability
+- repeated `/roll` calls must remain available for testing
+
+The developer should be able to roll repeatedly during development/testing.
+
+IMPORTANT:
+
+Developer mode does NOT mean unrestricted ownership.
+
+Developer mode does NOT automatically bypass character verification.
+
+Developer mode does NOT automatically bypass global character uniqueness.
+
+Developer mode does NOT allow developers to claim characters that are already globally owned.
+
+Developer mode is primarily a TESTING / ROLL AVAILABILITY override.
+
+==================================================
+ROLL INTEGRATION
+==================================================
+
+Inspect the current `/roll` implementation before changing it.
+
+Identify exactly where normal roll availability/restriction is determined.
+
+Integrate developer mode at the appropriate boundary.
+
+Preferred behavior:
+
+IF authorized developer has Developer Mode ON:
+
+    bypass normal roll availability restrictions
+
+OTHERWISE:
+
+    use the normal roll rules
+
+Do NOT duplicate the entire `/roll` implementation.
+
+Do NOT create a second developer-only roll system.
+
+Do NOT duplicate roll persistence logic.
+
+Do NOT bypass:
+
+- verified character filtering
+- character validity
+- ownership rules
+- transactional roll creation
+- roll persistence
+
+Only bypass the restrictions that developer mode is explicitly intended to bypass.
+
+==================================================
+ROLL RECORDS
+==================================================
+
+Developer rolls should continue to use the existing roll persistence system.
+
+Do NOT create a separate developer-roll table.
+
+Do NOT create an alternate roll schema.
+
+Developer rolls should remain compatible with the existing:
+
+- roll records
+- character cards
+- claim system
+- expiration behavior
+
+Unless the existing architecture makes a specific restriction incompatible with developer testing, preserve it.
+
+==================================================
+CLAIM BEHAVIOR
+==================================================
+
+Developer Mode must NOT automatically grant ownership.
+
+If a developer rolls a character:
+
+The normal claim system remains authoritative.
+
+Global uniqueness remains authoritative.
+
+The first valid claimant wins.
+
+A developer does not receive special ownership merely because Developer Mode is enabled.
+
+Do NOT modify claim semantics in this milestone.
+
+==================================================
+GLOBAL CHARACTER UNIQUENESS
+==================================================
+
+DO NOT redesign global uniqueness.
+
+The current intended rule is:
+
+ONE COPY OF EACH CHARACTER EXISTS GLOBALLY.
+
+The first successful claimant owns it.
+
+The current implementation uses transactional protection/advisory locking.
+
+Leave that implementation unchanged.
+
+Developer Mode must not bypass global uniqueness.
+
+==================================================
+MODE SCOPE
+==================================================
+
+Developer mode should be scoped to the authorized Discord developer using it.
+
+Do NOT make Developer Mode globally enabled for every Discord user.
+
+Do NOT make one developer enabling the mode enable it for everyone.
+
+Expected behavior:
+
+Developer A → ON
+
+Developer A → developer privileges enabled
+
+Developer B → unaffected
+
+Normal users → unaffected
+
+Developer A → OFF
+
+Developer A → developer privileges disabled
+
+Developer B → unaffected
+
+==================================================
+PROCESS / PERSISTENCE
+==================================================
+
+The current developer mode implementation is in-memory.
+
+Do NOT introduce database persistence unless the existing architecture makes it necessary.
+
+For this milestone, it is acceptable for Developer Mode to reset when the bot process restarts.
+
+If the bot restarts:
+
+All developer-mode states may return to OFF.
+
+This is preferable to introducing unnecessary database state.
+
+Document this behavior clearly.
+
+==================================================
+COMMAND RESPONSE
+==================================================
+
+Make `/developer` clearly communicate the current state.
+
+Example:
+
+`Developer Mode: ON`
+
+with a concise explanation such as:
+
+`Normal roll restrictions are bypassed for development testing.`
+
+When disabled:
+
+`Developer Mode: OFF`
+
+with:
+
+`Normal roll restrictions are active.`
+
+Use the project's existing Discord presentation conventions.
+
+Do NOT redesign unrelated embeds or cards.
+
+==================================================
+OTHER COMMANDS
+==================================================
+
+Do not give Developer Mode broad privileges across every command.
+
+Only implement developer privileges where explicitly required.
+
+For this milestone, the required gameplay override is:
+
+`/roll`
+
+If other existing development functionality already checks developer mode, preserve and correctly connect it to the same authoritative state.
+
+Do not invent new developer commands.
+
+==================================================
+STATE IMPLEMENTATION
+==================================================
+
+Inspect the existing developer implementation.
+
+Prefer reusing the current in-memory developer-mode set if it is structurally sound.
+
+The implementation must have one authoritative query such as:
+
+"is this developer currently in developer mode?"
+
+All gameplay checks must use that authoritative state.
+
+Do not create:
+
+- `developerMode`
+- `devMode`
+- `testingMode`
+- `unlimitedRolls`
+
+as separate competing states.
+
+If a helper is appropriate, create one reusable developer-mode check.
+
+==================================================
+TEST REQUIREMENTS
+==================================================
+
+Add focused automated tests for the new behavior.
+
+At minimum, test:
+
+### Authorization
+
+1. Authorized developer can enable Developer Mode.
+2. Unauthorized user cannot enable Developer Mode.
+
+### Toggle
+
+3. Developer Mode starts OFF.
+4. First toggle changes OFF → ON.
+5. Second toggle changes ON → OFF.
+6. Repeated toggling remains deterministic.
+
+### Roll behavior
+
+7. Developer Mode ON bypasses normal roll availability restrictions.
+8. Developer Mode OFF does NOT bypass normal roll availability restrictions.
+9. Developer can repeatedly roll while mode is ON.
+10. Turning Developer Mode OFF immediately restores normal restrictions.
+
+### Isolation
+
+11. Developer A enabling Developer Mode does not enable it for Developer B.
+12. Developer Mode does not affect normal users.
+
+### Gameplay integrity
+
+13. Developer Mode does not bypass verified-character filtering.
+14. Developer Mode does not bypass global character uniqueness.
+15. Developer Mode does not automatically grant ownership.
+
+### Restart behavior
+
+If the current in-memory implementation is retained:
+
+16. Developer mode is OFF after a new process instance.
+
+Do not create an elaborate persistence test if developer mode intentionally remains process-local.
+
+==================================================
+TEST QUALITY
+==================================================
+
+Tests must verify actual behavior.
+
+Do NOT write tests that only check that a variable changed.
+
+For example, this is insufficient:
+
+`developerMode === true`
+
+The tests should demonstrate that `/roll` actually behaves differently when the mode is enabled and returns to normal behavior when disabled.
+
+The most important regression test is:
+
+NORMAL
+→ ENABLE DEVELOPER MODE
+→ UNLIMITED ROLLS
+→ DISABLE DEVELOPER MODE
+→ NORMAL RESTRICTIONS RESTORED
+
+==================================================
+DATABASE POLICY
+==================================================
+
+Prefer NO DATABASE CHANGES.
+
+Do NOT add developer-mode database tables.
+
+Do NOT add developer-mode columns.
+
+Do NOT create migrations for developer mode unless you discover an existing architectural requirement that makes this unavoidable.
+
+The current process-local state is sufficient for this milestone.
+
+==================================================
+ARCHITECTURAL CONSTRAINTS
+==================================================
+
+Do NOT:
+
+- migrate PostgreSQL
+- introduce an ORM
+- migrate to Drizzle
+- rewrite the Discord client
+- rewrite the roll engine
+- rewrite claim logic
+- rewrite collections
+- rewrite profiles
+- rewrite search
+- rewrite favorites
+- rewrite wishlists
+- redesign character cards
+- redesign the database
+- add AI
+- add economy systems
+- add trading
+- add marketplace functionality
+- add new character import systems
+- add new roll banners
+- add pity systems
+
+This is a focused Developer Mode milestone.
+
+==================================================
+PRESERVE EXISTING BEHAVIOR
+==================================================
+
+All existing behavior must remain intact when Developer Mode is OFF.
+
+This is critical.
+
+A normal user should not notice any difference after this milestone.
+
+A developer with Developer Mode OFF should also behave like a normal user.
+
+Only an authorized developer with Developer Mode ON should receive the development roll override.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation, run:
+
+1. Full TypeScript typecheck
+2. Existing API tests
+3. New Developer Mode tests
+4. API build
+5. Existing health endpoint
+6. Discord workflow startup
+
+Use the repository's existing commands.
+
+Do not invent a new build system.
+
+Do not claim live Discord validation unless it was actually performed.
+
+==================================================
+LIVE DISCORD VALIDATION
+==================================================
+
+If Discord credentials are available, manually verify:
+
+### Authorization
+
+Authorized developer:
+
+`/developer`
+
+Expected:
+
+Developer Mode ON
+
+Normal user:
+
+`/developer`
+
+Expected:
+
+Unauthorized response.
+
+### Toggle ON
+
+Authorized developer:
+
+`/developer`
+
+Expected:
+
+Developer Mode ON
+
+Immediately perform repeated:
+
+`/roll`
+
+Expected:
+
+Rolls continue without normal roll restrictions.
+
+### Toggle OFF
+
+Authorized developer:
+
+`/developer`
+
+Expected:
+
+Developer Mode OFF
+
+Then attempt `/roll` under conditions where a normal user would be restricted.
+
+Expected:
+
+Normal roll restrictions apply.
+
+This test is REQUIRED because the original problem specifically involved the OFF state not actually restoring normal behavior.
+
+### Isolation
+
+If another authorized developer is available:
+
+Developer A → ON
+
+Developer B → `/roll`
+
+Developer B must NOT inherit Developer A's developer mode.
+
+==================================================
+DO NOT CONFUSE THIS WITH ROLL EXPIRATION
+==================================================
+
+Developer Mode is intended to remove restrictions on performing new developmental rolls.
+
+It does NOT necessarily mean:
+
+- rolls never expire
+- claims never expire
+- roll records never expire
+- claims bypass ownership
+
+Preserve existing roll expiration and claim semantics unless explicitly required for the development override.
+
+==================================================
+GIT SAFETY
+==================================================
+
+Do NOT reset Git.
+
+Do NOT revert the baseline.
+
+Do NOT rewrite history.
+
+Do NOT automatically commit.
+
+At completion, report:
+
+`git status`
+
+`git diff --stat`
+
+and:
+
+`git diff --name-status`
+
+The source diff should be limited to Developer Mode implementation and its tests.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return exactly:
+
+# Mudae Husbando V2 — Developer Mode Implementation
+
+## Implementation
+
+Describe:
+
+- existing implementation discovered
+- changes made
+- authoritative Developer Mode state
+- how `/roll` consults Developer Mode
+
+## Authorization
+
+Describe how authorized and unauthorized users behave.
+
+## Toggle Behavior
+
+Describe:
+
+- OFF → ON
+- ON → OFF
+- state isolation
+- restart behavior
+
+## Roll Behavior
+
+Describe exactly which normal restrictions Developer Mode bypasses.
+
+Confirm that:
+
+- verified-character filtering remains
+- global uniqueness remains
+- claim behavior remains
+- roll persistence remains
+
+## Database
+
+State whether database changes were made.
+
+Expected:
+
+`No database changes.`
+
+## Tests
+
+Report:
+
+- existing tests
+- new tests
+- total tests
+- passing
+- failing
+
+## Typecheck
+
+Report exact command and result.
+
+## Build
+
+Report exact command and result.
+
+## Health Endpoint
+
+Report whether it passed.
+
+## Discord
+
+Report:
+
+- bot startup
+- live testing availability
+- actual manual tests performed
+
+Do not claim tests that were not performed.
+
+## Git Changes
+
+List every modified/added/deleted file.
+
+## Remaining Issues
+
+Clearly separate:
+
+- Developer Mode issues
+- Existing gameplay issues
+- Environment issues
+- Testing gaps
+
+## Recommended Next Step
+
+Recommend the next focused milestone.
+
+Do NOT implement the next milestone.
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+This repository is a validated Mudae Husbando V2 baseline.
+
+Preserve it.
+
+Implement ONLY Developer Mode.
+
+The defining success condition is:
+
+AUTHORIZED DEVELOPER
+→ Developer Mode ON
+→ unlimited developmental /roll usage
+→ Developer Mode OFF
+→ normal roll restrictions immediately restored
+
+No stale state.
+
+No global developer privileges.
+
+No ownership bypass.
+
+No verification bypass.
+
+No database redesign.
+
+No unrelated gameplay changes.
+
+If the existing implementation differs from these requirements, adapt the smallest possible portion of the existing architecture.
+
+Inspect first.
+
+Implement minimally.
+
+Test thoroughly.
+
+Validate before reporting completion.
