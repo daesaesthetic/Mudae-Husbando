@@ -1,0 +1,547 @@
+# MUDAE HUSBANDO V2
+# CONFIRMED DANKEST MEMER ARTIFACT REMOVAL
+# AUTHORITATIVE REPOSITORY CLEANUP PROMPT
+
+You are a NEW Replit Agent working on the EXISTING Mudae Husbando V2 repository.
+
+The repository has already been audited for accidental cross-project contamination.
+
+A clean recovery baseline has now been committed to Git BEFORE this cleanup.
+
+Your task is to remove ONLY files that have been positively identified as Dankest Memer-specific artifacts.
+
+This is a TARGETED REPOSITORY CLEANUP.
+
+Do NOT redesign the application.
+
+Do NOT refactor the architecture.
+
+Do NOT modify gameplay.
+
+Do NOT "improve" unrelated code.
+
+Do NOT migrate databases.
+
+Do NOT rewrite the Discord bot.
+
+Do NOT modify working Mudae systems unless a modification is absolutely required because a deleted artifact is directly referenced by active Mudae code.
+
+==================================================
+AUTHORITATIVE PROJECT IDENTITY
+==================================================
+
+This repository is:
+
+Mudae Husbando V2.
+
+It is NOT the Dankest Memer bot.
+
+The following systems are authoritative Mudae architecture:
+
+- Mudae verified character catalog
+- Mudae character identity
+- Mudae rolls
+- Mudae claims
+- Mudae global character ownership
+- Mudae collections
+- Mudae profiles
+- Mudae search
+- Mudae favorites
+- Mudae wishlists
+- Mudae developer tooling
+- PostgreSQL persistence
+- existing raw pg / SQL database architecture
+- existing Mudae Discord architecture
+
+==================================================
+KNOWN CONTAMINATION
+==================================================
+
+The repository audit identified Dankest Memer-specific documentation and assets under:
+
+attached_assets/
+
+These materials describe systems including:
+
+- Dankest Memer economy
+- currency
+- cooldowns
+- ventures
+- scavenge
+- migrations
+- RNG helpers
+- Dankest Memer architecture phases
+- Dankest Memer implementation instructions
+
+The audit determined that these documents are NOT imported into the active TypeScript runtime.
+
+They are therefore repository contamination / historical project artifacts rather than active Mudae runtime dependencies.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Identify and remove the confirmed Dankest Memer-specific artifacts.
+
+The goal is:
+
+BEFORE:
+
+Mudae V2 repository
++
+unrelated Dankest Memer documentation/assets
+
+AFTER:
+
+Mudae V2 repository
++
+only relevant project assets/documentation
+
+==================================================
+IMPORTANT SAFETY RULE
+==================================================
+
+DELETE ONLY FILES THAT CAN BE POSITIVELY IDENTIFIED AS DANKEST MEMER-SPECIFIC.
+
+Do NOT delete a file merely because:
+
+- it contains economy code
+- it contains cooldown logic
+- it contains RNG logic
+- it resembles systems from Dankest Memer
+- its filename is generic
+- it is old
+- it is unused
+- it is not obviously Mudae-specific
+
+The existing active source may contain shared gameplay infrastructure that is valid for Mudae.
+
+Do NOT remove active TypeScript source based on resemblance alone.
+
+If uncertain:
+
+LEAVE THE FILE UNCHANGED.
+
+Report it in the final audit.
+
+==================================================
+STEP 1 — INSPECT BEFORE DELETING
+==================================================
+
+First inspect:
+
+- attached_assets/
+- repository references to those files
+- package configuration
+- source imports
+- documentation references
+- build configuration
+- Replit configuration
+
+Determine exactly which files are:
+
+[DANKest Memer — CONFIRMED]
+
+and which are:
+
+[Mudae]
+[Shared]
+[Unknown]
+
+Do NOT delete during this inspection stage.
+
+==================================================
+STEP 2 — CONFIRM RUNTIME REFERENCES
+==================================================
+
+Before deleting any suspected Dankest Memer file, verify that it is not imported or referenced by the active Mudae application.
+
+Check:
+
+- TypeScript imports
+- package scripts
+- build scripts
+- Replit workflows
+- configuration
+- documentation that is required for runtime
+- generated assets used by the bot
+
+If a suspected file IS referenced by active Mudae runtime code:
+
+DO NOT delete it immediately.
+
+Report:
+
+- file
+- reference
+- reason
+- potential impact
+
+Then determine whether the reference itself is historical documentation or an actual runtime dependency.
+
+==================================================
+STEP 3 — REMOVE CONFIRMED CONTAMINATION
+==================================================
+
+Once positively identified, delete the Dankest Memer-specific artifacts.
+
+This cleanup may include files such as:
+
+- Dankest Memer prompt documents
+- Dankest Memer implementation summaries
+- Dankest Memer architecture documents
+- Dankest Memer milestone documents
+- Dankest Memer-specific planning files
+- other clearly identified Dankest Memer artifacts
+
+Do NOT delete active Mudae code.
+
+==================================================
+STEP 4 — DO NOT REMOVE SHARED INFRASTRUCTURE
+==================================================
+
+The audit identified shared/infrastructure-style systems such as:
+
+- economy validation
+- cooldown handling
+- RNG helpers
+- database helpers
+- transaction helpers
+- validation utilities
+
+Do NOT remove these simply because similar systems existed in Dankest Memer.
+
+If they are active Mudae source files, leave them unchanged.
+
+If they are unused but clearly part of the active repository architecture, leave them unchanged unless they are conclusively identified as Dankest Memer-only artifacts.
+
+This milestone is NOT a source-code cleanup.
+
+==================================================
+STEP 5 — DO NOT CHANGE DATABASE ARCHITECTURE
+==================================================
+
+Do NOT:
+
+- modify PostgreSQL schema
+- modify migrations
+- add migrations
+- remove migrations
+- change constraints
+- alter tables
+- modify ownership
+- modify collections
+- modify characters
+- modify rolls
+- modify claims
+
+The current database architecture remains authoritative.
+
+==================================================
+STEP 6 — DO NOT CHANGE GAMEPLAY
+==================================================
+
+The following behavior must remain untouched:
+
+/roll
+
+/claim
+
+Claim Character
+
+/collection
+
+collection pagination
+
+/profile
+
+/search
+
+/favorite
+
+/wishlist
+
+/developer
+
+Global character uniqueness
+
+Verified-character eligibility
+
+First-claim-wins
+
+Roll expiration
+
+Ownership persistence
+
+Do NOT use this cleanup as an opportunity to fix any of these systems.
+
+Those are separate future milestones.
+
+==================================================
+STEP 7 — DO NOT CHANGE PRESENTATION
+==================================================
+
+Do NOT redesign:
+
+- character cards
+- embeds
+- collection presentation
+- profile presentation
+- search presentation
+- action responses
+- buttons
+
+No UI changes are part of this milestone.
+
+==================================================
+STEP 8 — DOCUMENTATION SAFETY
+==================================================
+
+If a documentation file is clearly Dankest Memer-specific, remove it.
+
+If documentation is mixed or ambiguous:
+
+DO NOT rewrite it.
+
+Report it for later review.
+
+Do not silently rewrite project history.
+
+==================================================
+STEP 9 — ACTIVE PROJECT DOCUMENTATION
+==================================================
+
+The authoritative project documentation is Mudae Husbando V2 documentation.
+
+Do NOT replace it with Dankest Memer documentation.
+
+Do NOT add Dankest Memer instructions.
+
+Do NOT import Dankest Memer architecture into:
+
+- README
+- replit.md
+- source comments
+- package scripts
+- database documentation
+
+==================================================
+STEP 10 — VERIFY NO ACTIVE REFERENCES REMAIN
+==================================================
+
+After removing confirmed Dankest Memer artifacts, search the repository for obvious Dankest Memer-specific references.
+
+Look for terms associated with the contaminated project, including:
+
+- Dankest Memer
+- Venture
+- Scavenge
+- Dankest-specific milestone names
+- Dankest-specific command names
+- other uniquely identifying references discovered during the audit
+
+IMPORTANT:
+
+Do NOT delete generic words such as:
+
+- economy
+- cooldown
+- RNG
+- transaction
+- migration
+
+merely because Dankest Memer used them.
+
+Only report references that are actually associated with the unrelated project.
+
+==================================================
+STEP 11 — VERIFY MUDae SOURCE
+==================================================
+
+Confirm the following still exist:
+
+- character catalog
+- database
+- migrations
+- Discord client
+- presentation
+- developer tooling
+- roll handling
+- claim handling
+- collection handling
+- profile handling
+- search handling
+- favorite handling
+- wishlist handling
+
+Do not modify them.
+
+==================================================
+STEP 12 — VALIDATION
+==================================================
+
+After deletion, run the project's existing validation commands.
+
+At minimum, where supported:
+
+- TypeScript typecheck
+- API build
+- automated tests
+- formatting validation
+- health endpoint
+
+Do NOT invent commands.
+
+Inspect package.json and workspace configuration first.
+
+If the workflow requires dependencies that are not installed, report that instead of making unrelated dependency changes.
+
+==================================================
+STEP 13 — GIT SAFETY
+==================================================
+
+Do NOT create a commit automatically.
+
+The user has already created a clean baseline commit.
+
+After cleanup, show:
+
+git status
+
+and:
+
+git diff --stat
+
+and, where useful:
+
+git diff --name-status
+
+The user will review the deletion set before committing.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return exactly:
+
+# Dankest Memer Artifact Cleanup
+
+## Confirmed Dankest Memer Files Removed
+
+List every deleted file.
+
+For each file, briefly explain why it was conclusively identified as Dankest Memer-specific.
+
+## Files Intentionally Preserved
+
+List any suspicious-looking files that were deliberately left untouched because they are:
+
+- active Mudae systems
+- shared infrastructure
+- ambiguous
+- required by runtime
+
+## Runtime Reference Check
+
+State whether any active Mudae source referenced the deleted artifacts.
+
+## Mudae Source Integrity
+
+Confirm that the active Mudae source was not intentionally modified.
+
+If any active file had to be modified, explain exactly why.
+
+## Database Integrity
+
+Confirm whether the database schema or migrations were changed.
+
+Expected:
+
+NO DATABASE CHANGES.
+
+## Gameplay Integrity
+
+Confirm that no gameplay behavior was intentionally changed.
+
+## Validation Results
+
+Report actual results for:
+
+- typecheck
+- build
+- tests
+- formatting
+- health endpoint
+
+Do not claim tests were run if they were not.
+
+## Git Status
+
+Report the resulting working-tree state.
+
+## Remaining Suspicious Files
+
+List any files that may still contain Dankest Memer material but were not removed because their status was ambiguous.
+
+## Recommended Next Step
+
+Do NOT perform the next step.
+
+Only recommend what should happen next based on the cleanup result.
+
+==================================================
+ABSOLUTE RESTRICTIONS
+==================================================
+
+DO NOT:
+
+- rebuild the project
+- revert the repository
+- reset Git
+- checkout an older commit
+- rewrite history
+- modify the database
+- migrate ORM architecture
+- refactor Discord architecture
+- fix developer mode
+- modify global uniqueness
+- modify claim logic
+- modify roll logic
+- modify collection logic
+- modify profile logic
+- modify search logic
+- modify favorites
+- modify wishlists
+- modify presentation
+- install unrelated dependencies
+- import Dankest Memer systems
+- delete ambiguous files
+- commit changes
+
+This is a targeted artifact-removal operation.
+
+==================================================
+FINAL AUTHORITY
+==================================================
+
+The current committed repository is the recovery baseline.
+
+Preserve that baseline.
+
+Remove only confirmed Dankest Memer contamination.
+
+Do not "clean up" anything else.
+
+If uncertain, preserve the file and report it.
+
+The objective is not to make the repository smaller.
+
+The objective is to make the repository unambiguously Mudae Husbando V2 without damaging the validated Mudae implementation.
+
+Inspect first.
+
+Delete only confirmed contamination.
+
+Validate afterward.
+
+Do not make unrelated changes.
