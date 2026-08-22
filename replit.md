@@ -28,12 +28,18 @@ An actual Discord character-collection game with a verified-only catalog and per
 - `artifacts/api-server/src/bot/client.ts` — Discord slash commands and embeds
 - `artifacts/api-server/src/bot/database.ts` — persistent Postgres game storage and verified-only queries
 - `artifacts/api-server/src/bot/catalog.ts` — manually curated verified seed catalog
+- `artifacts/api-server/src/bot/migrations.ts` — ordered, recorded, non-destructive database migrations
+- `artifacts/api-server/src/bot/economy.ts` — transactional currency and ledger service
+- `artifacts/api-server/src/bot/cooldown.ts` — persistent, concurrency-aware cooldown service
+- `artifacts/api-server/src/bot/rng.ts` — reusable random integer and weighted-outcome helpers
 
 ## Architecture decisions
 
 - The Discord client and health API share the existing API Server workflow so the bot runs as a normal Replit service.
 - Postgres stores all important game state; startup creates additive tables and seeds only verified records.
 - The bot never asks AI or user input to establish character identity; rolls and search query `status = 'verified'`.
+- New economy, cooldown, and reward behavior must use the shared services rather than adding raw SQL to commands.
+- Schema changes are applied through `mudae_schema_migrations`; existing tables and rows are preserved.
 - Discord tokens are read only from Replit Secrets.
 
 ## Product
@@ -49,6 +55,7 @@ The first playable slice includes verified character rolls, persistent expiring 
 - The API workflow runs both the health endpoint and Discord bot.
 - Discord slash commands are registered globally during startup and may take a short time to appear.
 - `ROLL_EXPIRATION_MS` optionally controls claim duration; it defaults to 15 minutes.
+- Phase 1 adds the `mudae_currency_transactions` and `mudae_cooldowns` persistence tables without adding economy commands.
 
 ## Pointers
 

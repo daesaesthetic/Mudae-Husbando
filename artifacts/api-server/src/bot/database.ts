@@ -1,5 +1,8 @@
 import pg from "pg";
 import { seedCharacters } from "./catalog.js";
+import { CooldownService } from "./cooldown.js";
+import { EconomyService } from "./economy.js";
+import { runMigrations } from "./migrations.js";
 import {
   normalizePagination,
   normalizeSearchQuery,
@@ -12,6 +15,8 @@ const { Pool } = pg;
 
 export class GameDatabase {
   private readonly pool: pg.Pool;
+  public readonly economy: EconomyService;
+  public readonly cooldowns: CooldownService;
   private readonly rollExpirationMs = Number(
     process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000,
   );
@@ -21,47 +26,12 @@ export class GameDatabase {
       throw new Error("DATABASE_URL is required for persistent game storage.");
     }
     this.pool = pool ?? new Pool({ connectionString: process.env.DATABASE_URL });
+    this.economy = new EconomyService(this.pool);
+    this.cooldowns = new CooldownService(this.pool);
   }
 
   async initialize() {
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS mudae_characters (
-        id SERIAL PRIMARY KEY, name TEXT NOT NULL, aliases TEXT[] NOT NULL DEFAULT '{}',
-        series TEXT NOT NULL, media_type TEXT NOT NULL, gender TEXT NOT NULL,
-        source_url TEXT NOT NULL, image_url TEXT, description TEXT NOT NULL,
-        rarity TEXT NOT NULL, value INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE UNIQUE INDEX IF NOT EXISTS mudae_characters_name_series_idx ON mudae_characters (LOWER(name), LOWER(series));
-      CREATE TABLE IF NOT EXISTS mudae_users (
-        discord_id TEXT PRIMARY KEY, display_name TEXT NOT NULL, currency INTEGER NOT NULL DEFAULT 0,
-        rolls_used INTEGER NOT NULL DEFAULT 0, claims_count INTEGER NOT NULL DEFAULT 0,
-        last_roll_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE TABLE IF NOT EXISTS mudae_collections (
-        discord_id TEXT NOT NULL REFERENCES mudae_users(discord_id) ON DELETE CASCADE,
-        character_id INTEGER NOT NULL REFERENCES mudae_characters(id) ON DELETE RESTRICT,
-        quantity INTEGER NOT NULL DEFAULT 1, favorite BOOLEAN NOT NULL DEFAULT FALSE,
-        acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (discord_id, character_id)
-      );
-      CREATE TABLE IF NOT EXISTS mudae_wishlists (
-        discord_id TEXT NOT NULL REFERENCES mudae_users(discord_id) ON DELETE CASCADE,
-        character_id INTEGER NOT NULL REFERENCES mudae_characters(id) ON DELETE CASCADE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (discord_id, character_id)
-      );
-      CREATE TABLE IF NOT EXISTS mudae_rolls (
-        id UUID PRIMARY KEY, discord_id TEXT NOT NULL REFERENCES mudae_users(discord_id) ON DELETE CASCADE,
-        guild_id TEXT, character_id INTEGER NOT NULL REFERENCES mudae_characters(id), claimed_by TEXT,
-        expires_at TIMESTAMPTZ NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), claimed_at TIMESTAMPTZ
-      );
-      ALTER TABLE mudae_rolls ADD COLUMN IF NOT EXISTS guild_id TEXT;
-      ALTER TABLE mudae_rolls ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
-      UPDATE mudae_rolls SET expires_at = created_at + INTERVAL '15 minutes' WHERE expires_at IS NULL;
-      ALTER TABLE mudae_rolls ALTER COLUMN expires_at SET NOT NULL;
-    `);
+    await runMigrations(this.pool);
     for (const character of seedCharacters) {
       await this.pool.query(
         `INSERT INTO mudae_characters

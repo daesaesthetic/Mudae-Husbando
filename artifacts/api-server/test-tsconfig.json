@@ -6,5 +6,16 @@
     "types": ["node"],
     "noEmit": false
   },
-  "include": ["src/bot/catalog.ts", "src/bot/database.ts", "src/bot/developer.ts", "src/bot/rules.ts", "tests/**/*.ts"]
+  "include": [
+    "src/bot/catalog.ts",
+    "src/bot/cooldown.ts",
+    "src/bot/database.ts",
+    "src/bot/developer.ts",
+    "src/bot/economy.ts",
+    "src/bot/migrations.ts",
+    "src/bot/rng.ts",
+    "src/bot/rules.ts",
+    "src/bot/validation.ts",
+    "tests/**/*.ts"
+  ]
 }
