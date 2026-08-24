@@ -18,6 +18,12 @@ const rarityColors: Record<string, number> = {
   rare: palette.lavender,
 };
 
+function characterCategory(gender?: string) {
+  if (gender === "male") return "Husbando";
+  if (gender === "female") return "Waifu";
+  return "Character";
+}
+
 export type RollCardData = {
   id: string;
   characterId: number;
@@ -30,6 +36,8 @@ export type RollCardData = {
   rollerName?: string;
   rarity: string;
   value: number;
+  popularityRank?: number;
+  rollWeight?: number;
   description: string;
 };
 
@@ -40,8 +48,15 @@ export function characterCard(roll: RollCardData) {
     .setDescription(roll.description || "No description available.")
     .addFields(
       { name: "Series", value: roll.series || "Unknown", inline: true },
+      { name: "Category", value: characterCategory(roll.gender), inline: true },
       { name: "Rarity", value: roll.rarity || "Common", inline: true },
-      { name: "Value", value: `${roll.value}`, inline: true },
+      { name: "Kakera Value", value: `${roll.value}`, inline: true },
+      ...(roll.popularityRank
+        ? [{ name: "Popularity Rank", value: `#${roll.popularityRank}`, inline: true }]
+        : []),
+      ...(roll.rollWeight
+        ? [{ name: "Roll Weight", value: `${roll.rollWeight}×`, inline: true }]
+        : []),
       ...(roll.rollerName
         ? [{ name: "Rolled By", value: roll.rollerName, inline: true }]
         : []),
@@ -78,8 +93,12 @@ export function claimedCharacterCard(character: ClaimedCharacterData) {
     .setDescription(character.description || "No description available.")
     .addFields(
       { name: "Series", value: character.series || "Unknown", inline: true },
+      { name: "Category", value: characterCategory(character.gender), inline: true },
       { name: "Rarity", value: character.rarity || "Common", inline: true },
-      { name: "Value", value: `${character.value}`, inline: true },
+      { name: "Kakera Value", value: `${character.value}`, inline: true },
+      ...(character.popularityRank
+        ? [{ name: "Popularity Rank", value: `#${character.popularityRank}`, inline: true }]
+        : []),
       { name: "Claimed By", value: character.claimant, inline: true },
     )
     .setFooter({ text: "✦ Verified catalog • Added to collection" });
@@ -95,6 +114,9 @@ type CollectionPageData = {
   items: {
     name: string;
     series: string;
+    rarity: string;
+    value: number;
+    popularityRank: number;
     quantity: number;
     favorite: boolean;
   }[];
@@ -108,7 +130,7 @@ export function collectionPage(
   const description = collection.items
     .map(
       (character) =>
-        `${character.favorite ? "★ " : ""}**${character.name}** — ${character.series} · ×${character.quantity}`,
+        `${character.favorite ? "★ " : ""}**${character.name}** — ${character.series} · ${character.rarity} · ${character.value} kakera · #${character.popularityRank} · ×${character.quantity}`,
     )
     .join("\n");
   const previous = new ButtonBuilder()
@@ -149,6 +171,8 @@ export function profileCard(displayName: string, profile: {
   available_claims: number;
   claim_replenishment_at: Date | null;
   currency: number;
+  total_kakera: number;
+  best_rank: number | null;
 }) {
   return {
     embeds: [
@@ -162,6 +186,10 @@ export function profileCard(displayName: string, profile: {
           { name: "Wishlist", value: `${profile.wishlist_count}`, inline: true },
           { name: "Claims", value: `${profile.claims_count}`, inline: true },
           { name: "Rolls", value: `${profile.rolls_used}`, inline: true },
+          { name: "Total Kakera", value: `${profile.total_kakera}`, inline: true },
+          ...(profile.best_rank
+            ? [{ name: "Best Rank", value: `#${profile.best_rank}`, inline: true }]
+            : []),
           {
             name: "Rolls Available",
             value: `${profile.available_rolls} / ${Number(process.env.ROLL_POOL_SIZE ?? 10)}`,
@@ -199,6 +227,9 @@ export function searchResults(results: {
   imageUrl: string | null;
   rarity: string;
   value: number;
+  gender: string;
+  popularityRank: number;
+  rollWeight: number;
 }[]) {
   return {
     embeds: results.map((character) => {
@@ -206,7 +237,7 @@ export function searchResults(results: {
         .setColor(palette.lavender)
         .setTitle(character.name)
         .setDescription(
-          `**${character.series}**\n${character.rarity} · Value ${character.value}`,
+          `**${character.series}**\n${characterCategory(character.gender)} · ${character.rarity} · ${character.value} kakera · Rank #${character.popularityRank}`,
         )
         .setFooter({
           text: `✦ Verified character • ${results.length} result${results.length === 1 ? "" : "s"}`,
@@ -231,6 +262,7 @@ export function leaderboardCard(
     displayName: string;
     uniqueCharacters: number;
     totalCopies: number;
+    totalKakera: number;
   }[],
 ) {
   return actionResult(
@@ -239,7 +271,7 @@ export function leaderboardCard(
       ? entries
           .map(
             (entry, index) =>
-              `**${index + 1}. ${entry.displayName}** — ${entry.uniqueCharacters} unique · ${entry.totalCopies} total`,
+              `**${index + 1}. ${entry.displayName}** — ${entry.totalKakera} kakera · ${entry.uniqueCharacters} unique · ${entry.totalCopies} total`,
           )
           .join("\n")
       : "No collections have been created yet.",

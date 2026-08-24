@@ -130,7 +130,7 @@ async function executeCommand(database: GameDatabase, context: CommandContext): 
       unique_characters: 0, total_copies: 0, favorites: 0, wishlist_count: 0,
       claims_count: 0, rolls_used: 0, available_rolls: Number(process.env.ROLL_POOL_SIZE ?? 10),
       roll_replenishment_at: null, available_claims: Number(process.env.CLAIM_POOL_SIZE ?? 1),
-      claim_replenishment_at: null, currency: 0,
+      claim_replenishment_at: null, currency: 0, total_kakera: 0, best_rank: null,
     });
   }
   if (command === "wishlist" || command === "favorite") {

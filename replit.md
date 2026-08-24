@@ -48,6 +48,8 @@ An actual Discord character-collection game with a verified-only catalog and per
 - The bot never asks AI or user input to establish character identity; rolls and search query `status = 'verified'`.
 - New economy, cooldown, and reward behavior must use the shared services rather than adding raw SQL to commands.
 - Schema changes are applied through `mudae_schema_migrations`; existing tables and rows are preserved.
+- Character `value` is the displayed kakera-like value; popularity rank and roll weight are curated Mudae-inspired approximations, persisted additively, and must not be presented as live Mudae data.
+- `/roll`, `/ha`, and `/wa` select eligible unclaimed characters using their positive roll weights; lower weights make high-value characters rarer while preserving the existing roll pool and claim transaction rules.
 - Discord tokens are read only from Replit Secrets.
 - Developer Mode is process-local and resets to OFF when the bot restarts. Authorized developers can toggle it with `/developer`; while ON, normal roll cooldown restrictions are bypassed without changing claim or ownership rules.
 

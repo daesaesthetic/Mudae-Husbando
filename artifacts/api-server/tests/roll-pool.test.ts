@@ -23,6 +23,7 @@ class RollPool {
   }>();
   private userLock: Promise<void> = Promise.resolve();
   public lastCharacterFilter: unknown = undefined;
+  public lastCharacterQuery = "";
 
   async connect() {
     let releaseUserLock = () => {};
@@ -41,6 +42,7 @@ class RollPool {
         }
         if (sql.includes("FROM mudae_characters c")) {
           this.lastCharacterFilter = params[0];
+          this.lastCharacterQuery = sql;
           return {
             rows: [{
               id: 1,
@@ -245,6 +247,7 @@ describe("persistent roll pool", () => {
     const husbando = await database.roll("husbando", "player", null, false, "male");
     assert.equal(husbando.status, "success");
     assert.equal(pool.lastCharacterFilter, "male");
+    assert.match(pool.lastCharacterQuery, /LN\(GREATEST\(RANDOM\(\), 0\.000001\)\) \/ c\.roll_weight/);
     assert.equal(pool.user.available_rolls, 9);
 
     const waifu = await database.roll("waifu", "player", null, false, "female");

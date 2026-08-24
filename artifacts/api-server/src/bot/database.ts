@@ -43,11 +43,14 @@ export class GameDatabase {
     for (const character of seedCharacters) {
       await this.pool.query(
         `INSERT INTO mudae_characters
-          (name, aliases, series, media_type, gender, source_url, image_url, description, rarity, value, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'verified')
+          (name, aliases, series, media_type, gender, source_url, image_url, description, rarity, value, popularity_rank, roll_weight, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'verified')
          ON CONFLICT (LOWER(name), LOWER(series)) DO UPDATE SET
            aliases = EXCLUDED.aliases,
            image_url = COALESCE(EXCLUDED.image_url, mudae_characters.image_url),
+            value = EXCLUDED.value,
+            popularity_rank = EXCLUDED.popularity_rank,
+            roll_weight = EXCLUDED.roll_weight,
            updated_at = NOW()`,
         [
           character.name,
@@ -60,6 +63,8 @@ export class GameDatabase {
           character.description,
           character.rarity,
           character.value,
+          character.popularityRank,
+          character.rollWeight,
         ],
       );
     }
@@ -76,13 +81,14 @@ export class GameDatabase {
   async getRandomVerified() {
     const result = await this.pool.query(
       `SELECT id, name, aliases, series, media_type AS "mediaType", gender, source_url AS "sourceUrl",
-              image_url AS "imageUrl", description, rarity, value, status
+              image_url AS "imageUrl", description, rarity, value,
+              popularity_rank AS "popularityRank", roll_weight AS "rollWeight", status
        FROM mudae_characters c
        WHERE c.status = 'verified'
          AND NOT EXISTS (
            SELECT 1 FROM mudae_collections o WHERE o.character_id = c.id
          )
-       ORDER BY RANDOM() LIMIT 1`,
+        ORDER BY -LN(GREATEST(RANDOM(), 0.000001)) / c.roll_weight LIMIT 1`,
     );
     return result.rows[0] as
       ((typeof seedCharacters)[number] & { id: number }) | undefined;
@@ -173,18 +179,21 @@ export class GameDatabase {
         imageUrl: string | null;
         rarity: string;
         value: number;
+        popularityRank: number;
+        rollWeight: number;
         description: string;
       }>(
         `SELECT c.id, c.name, c.series, c.media_type AS "mediaType", c.gender,
                 c.image_url AS "imageUrl",
-                c.rarity, c.value, c.description
+                c.rarity, c.value, c.popularity_rank AS "popularityRank",
+                c.roll_weight AS "rollWeight", c.description
          FROM mudae_characters c
          WHERE c.status = 'verified'
            AND ($1::text IS NULL OR c.gender = $1)
            AND NOT EXISTS (
              SELECT 1 FROM mudae_collections o WHERE o.character_id = c.id
            )
-         ORDER BY RANDOM() LIMIT 1`,
+          ORDER BY -LN(GREATEST(RANDOM(), 0.000001)) / c.roll_weight LIMIT 1`,
         [gender ?? null],
       );
       if (!characterResult.rowCount) {
@@ -356,7 +365,8 @@ export class GameDatabase {
   async getCharacter(id: number) {
     const result = await this.pool.query(
       `SELECT id, name, series, media_type AS "mediaType", gender, image_url AS "imageUrl",
-              rarity, value, description
+               rarity, value, popularity_rank AS "popularityRank",
+               roll_weight AS "rollWeight", description
        FROM mudae_characters WHERE id = $1 AND status = 'verified'`,
       [id],
     );
@@ -370,6 +380,8 @@ export class GameDatabase {
            imageUrl: string | null;
           rarity: string;
           value: number;
+           popularityRank: number;
+           rollWeight: number;
           description: string;
         }
       | undefined;
@@ -379,7 +391,8 @@ export class GameDatabase {
     const result = await this.pool.query(
       `SELECT r.id, r.discord_id AS "discordId", r.character_id AS "characterId", r.expires_at AS "expiresAt",
               r.claimed_by AS "claimedBy", c.name, c.series, c.media_type AS "mediaType",
-              c.gender, c.image_url AS "imageUrl", c.rarity, c.value, c.description
+              c.gender, c.image_url AS "imageUrl", c.rarity, c.value,
+              c.popularity_rank AS "popularityRank", c.roll_weight AS "rollWeight", c.description
        FROM mudae_rolls r JOIN mudae_characters c ON c.id = r.character_id
        WHERE r.id = $1 AND ($2::text IS NULL OR r.discord_id = $2)`,
       [rollId, discordId ?? null],
@@ -398,6 +411,8 @@ export class GameDatabase {
           imageUrl: string | null;
           rarity: string;
           value: number;
+           popularityRank: number;
+           rollWeight: number;
           description: string;
         }
       | undefined;
@@ -407,7 +422,9 @@ export class GameDatabase {
     const normalizedQuery = normalizeSearchQuery(query);
     if (!normalizedQuery) return [];
     const result = await this.pool.query(
-      `SELECT id, name, series, image_url AS "imageUrl", rarity, value FROM mudae_characters
+      `SELECT id, name, series, image_url AS "imageUrl", rarity, value,
+              gender, popularity_rank AS "popularityRank", roll_weight AS "rollWeight"
+       FROM mudae_characters
        WHERE status = 'verified' AND (
           regexp_replace(name, '\\s+', ' ', 'g') ILIKE $1
           OR regexp_replace(series, '\\s+', ' ', 'g') ILIKE $1
@@ -426,6 +443,9 @@ export class GameDatabase {
       imageUrl: string | null;
       rarity: string;
       value: number;
+       gender: string;
+       popularityRank: number;
+       rollWeight: number;
     }[];
   }
 
@@ -445,12 +465,14 @@ export class GameDatabase {
     const result = await this.pool.query(
       `SELECT u.discord_id AS "discordId", u.display_name AS "displayName",
               COUNT(o.character_id)::int AS "uniqueCharacters",
-              COALESCE(SUM(o.quantity), 0)::int AS "totalCopies"
+              COALESCE(SUM(o.quantity), 0)::int AS "totalCopies",
+              COALESCE(SUM(c.value * o.quantity), 0)::int AS "totalKakera"
        FROM mudae_users u
        LEFT JOIN mudae_collections o ON o.discord_id = u.discord_id
-       GROUP BY u.discord_id, u.display_name
+        LEFT JOIN mudae_characters c ON c.id = o.character_id
+        GROUP BY u.discord_id, u.display_name
        HAVING COUNT(o.character_id) > 0
-       ORDER BY COUNT(o.character_id) DESC, COALESCE(SUM(o.quantity), 0) DESC, u.display_name
+        ORDER BY COALESCE(SUM(c.value * o.quantity), 0) DESC, COUNT(o.character_id) DESC, u.display_name
        LIMIT $1`,
       [limit],
     );
@@ -459,6 +481,7 @@ export class GameDatabase {
       displayName: string;
       uniqueCharacters: number;
       totalCopies: number;
+      totalKakera: number;
     }[];
   }
 
@@ -466,7 +489,8 @@ export class GameDatabase {
     const normalizedQuery = normalizeSearchQuery(query);
     if (!normalizedQuery) return { status: "not_found", matches: [] };
     const result = await this.pool.query(
-      `SELECT id, name, series, rarity, value FROM mudae_characters
+      `SELECT id, name, series, rarity, value, popularity_rank AS "popularityRank",
+              roll_weight AS "rollWeight" FROM mudae_characters
        WHERE status = 'verified' AND (
          regexp_replace(name, '\\s+', ' ', 'g') ILIKE $1
          OR regexp_replace(series, '\\s+', ' ', 'g') ILIKE $1
@@ -491,7 +515,8 @@ export class GameDatabase {
     const totalItems = Number(countResult.rows[0]?.total ?? 0);
     const pagination = normalizePagination(page, pageSize, totalItems);
     const result = await this.pool.query(
-      `SELECT c.id AS "characterId", c.name, c.series, c.rarity, c.value, o.quantity, o.favorite
+      `SELECT c.id AS "characterId", c.name, c.series, c.rarity, c.value,
+              c.popularity_rank AS "popularityRank", o.quantity, o.favorite
        FROM mudae_collections o JOIN mudae_characters c ON c.id = o.character_id
        WHERE o.discord_id = $1 ORDER BY c.name, c.id
        LIMIT $2 OFFSET $3`,
@@ -504,6 +529,7 @@ export class GameDatabase {
         series: string;
         rarity: string;
         value: number;
+        popularityRank: number;
         quantity: number;
         favorite: boolean;
       }[],
@@ -521,9 +547,13 @@ export class GameDatabase {
               u.claim_replenishment_at,
               COUNT(o.character_id)::int AS unique_characters,
               COALESCE(SUM(o.quantity), 0)::int AS total_copies,
-              COUNT(o.character_id) FILTER (WHERE o.favorite)::int AS favorites,
+               COUNT(o.character_id) FILTER (WHERE o.favorite)::int AS favorites,
+               COALESCE(SUM(c.value * o.quantity), 0)::int AS total_kakera,
+               MIN(c.popularity_rank)::int AS best_rank,
               (SELECT COUNT(*)::int FROM mudae_wishlists w WHERE w.discord_id = u.discord_id) AS wishlist_count
-       FROM mudae_users u LEFT JOIN mudae_collections o ON o.discord_id = u.discord_id
+        FROM mudae_users u
+        LEFT JOIN mudae_collections o ON o.discord_id = u.discord_id
+        LEFT JOIN mudae_characters c ON c.id = o.character_id
        WHERE u.discord_id = $1 GROUP BY u.discord_id`,
       [discordId],
     );
@@ -539,6 +569,8 @@ export class GameDatabase {
           unique_characters: number;
           total_copies: number;
           favorites: number;
+           total_kakera: number;
+           best_rank: number | null;
           wishlist_count: number;
         }
       | undefined;
