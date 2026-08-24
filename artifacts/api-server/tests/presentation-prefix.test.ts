@@ -30,6 +30,7 @@ describe("character presentation", () => {
   it("renders character identity and a claim action", () => {
     const card = characterCard(roll);
     const embed = card.embeds[0].data;
+    assert.equal(embed.color, 0xb7a5ff);
     assert.equal(embed.title, "Satoru Gojo · #7");
     assert.equal(embed.description, roll.description);
     assert.ok(embed.fields?.some((field) => field.name === "Series" && field.value === roll.series));
@@ -93,6 +94,7 @@ describe("character presentation", () => {
     ]);
     assert.equal(results.embeds.length, 2);
     assert.equal(results.embeds[0].data.title, "Frieren");
+    assert.equal(results.embeds[0].data.color, 0xb7a5ff);
     assert.equal(
       results.embeds[0].data.image?.url,
       "https://mudae.net/uploads/9949210/sxCkz8W~aHZ9NcQ.png",
@@ -182,11 +184,14 @@ describe("Mudae-style utility cards", () => {
   it("renders remaining-character and collection-leaderboard summaries", () => {
     const remaining = remainingCharactersCard(11);
     assert.match(remaining.embeds[0].data.description ?? "", /11/);
+    assert.equal(remaining.embeds[0].data.color, 0x28b8ff);
 
     const leaderboard = leaderboardCard([
       { displayName: "Player One", uniqueCharacters: 4, totalCopies: 5 },
     ]);
     assert.match(leaderboard.embeds[0].data.description ?? "", /1\. Player One/);
     assert.match(leaderboard.embeds[0].data.description ?? "", /4 unique/);
+    assert.equal(leaderboard.embeds[0].data.color, 0xf4c95d);
+    assert.match(leaderboard.embeds[0].data.footer?.text ?? "", /Mudae Husbando/);
   });
 });

@@ -1,6 +1,22 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
 
-const rarityColors: Record<string, number> = { common: 0x94a3b8, uncommon: 0x38bdf8, rare: 0xa78bfa };
+const palette: Record<
+  "midnight" | "electricBlue" | "lavender" | "pink" | "gold" | "muted",
+  number
+> = {
+  midnight: 0x111936,
+  electricBlue: 0x28b8ff,
+  lavender: 0xb7a5ff,
+  pink: 0xf28bb5,
+  gold: 0xf4c95d,
+  muted: 0x65709a,
+};
+
+const rarityColors: Record<string, number> = {
+  common: palette.muted,
+  uncommon: palette.electricBlue,
+  rare: palette.lavender,
+};
 
 export type RollCardData = {
   id: string;
@@ -19,7 +35,7 @@ export type RollCardData = {
 
 export function characterCard(roll: RollCardData) {
   const embed = new EmbedBuilder()
-    .setColor(rarityColors[roll.rarity] ?? 0x64748b)
+    .setColor(rarityColors[roll.rarity] ?? palette.midnight)
     .setTitle(`${roll.name} · #${roll.characterId}`)
     .setDescription(roll.description || "No description available.")
     .addFields(
@@ -37,7 +53,7 @@ export function characterCard(roll: RollCardData) {
           }]
         : []),
     )
-    .setFooter({ text: "Verified catalog • Claim before this roll expires" });
+    .setFooter({ text: "✦ Verified catalog • Claim before this roll expires" });
   if (roll.imageUrl) embed.setImage(roll.imageUrl);
   else embed.addFields({ name: "Artwork", value: "Artwork coming soon", inline: true });
   const button = new ButtonBuilder()
@@ -57,7 +73,7 @@ export type ClaimedCharacterData = Omit<RollCardData, "id" | "characterId"> & {
 
 export function claimedCharacterCard(character: ClaimedCharacterData) {
   const embed = new EmbedBuilder()
-    .setColor(rarityColors[character.rarity] ?? 0x64748b)
+    .setColor(rarityColors[character.rarity] ?? palette.midnight)
     .setTitle(`${character.name} · #${character.id}`)
     .setDescription(character.description || "No description available.")
     .addFields(
@@ -66,7 +82,7 @@ export function claimedCharacterCard(character: ClaimedCharacterData) {
       { name: "Value", value: `${character.value}`, inline: true },
       { name: "Claimed By", value: character.claimant, inline: true },
     )
-    .setFooter({ text: "Verified catalog • Added to collection" });
+    .setFooter({ text: "✦ Verified catalog • Added to collection" });
   if (character.imageUrl) embed.setImage(character.imageUrl);
   else embed.addFields({ name: "Artwork", value: "Artwork coming soon", inline: true });
   return { embeds: [embed] };
@@ -108,10 +124,11 @@ export function collectionPage(
   return {
     embeds: [
       new EmbedBuilder()
+        .setColor(palette.pink)
         .setTitle(`Collection — ${displayName}`)
         .setDescription(description || "Your collection is empty. Use /roll to find a verified character.")
         .setFooter({
-          text: `Page ${collection.page} / ${collection.totalPages} · ${collection.totalItems} unique character${collection.totalItems === 1 ? "" : "s"}`,
+          text: `✦ Page ${collection.page} / ${collection.totalPages} · ${collection.totalItems} unique character${collection.totalItems === 1 ? "" : "s"}`,
         }),
     ],
     components: [
@@ -136,7 +153,7 @@ export function profileCard(displayName: string, profile: {
   return {
     embeds: [
       new EmbedBuilder()
-        .setColor(0x38bdf8)
+        .setColor(palette.electricBlue)
         .setTitle(`${displayName}'s Profile`)
         .addFields(
           { name: "Unique Characters", value: `${profile.unique_characters}`, inline: true },
@@ -171,7 +188,7 @@ export function profileCard(displayName: string, profile: {
             : []),
           { name: "Currency", value: `${profile.currency}`, inline: true },
         )
-        .setFooter({ text: "Your verified character collection" }),
+        .setFooter({ text: "✦ Your verified character collection" }),
     ],
   };
 }
@@ -186,13 +203,13 @@ export function searchResults(results: {
   return {
     embeds: results.map((character) => {
       const embed = new EmbedBuilder()
-        .setColor(0xa78bfa)
+        .setColor(palette.lavender)
         .setTitle(character.name)
         .setDescription(
           `**${character.series}**\n${character.rarity} · Value ${character.value}`,
         )
         .setFooter({
-          text: `Verified character • ${results.length} result${results.length === 1 ? "" : "s"}`,
+          text: `✦ Verified character • ${results.length} result${results.length === 1 ? "" : "s"}`,
         });
       if (character.imageUrl) embed.setImage(character.imageUrl);
       else embed.addFields({ name: "Artwork", value: "Artwork coming soon" });
@@ -205,7 +222,7 @@ export function remainingCharactersCard(count: number) {
   return actionResult(
     "Characters Remaining",
     `**${count}** verified character${count === 1 ? "" : "s"} remain available to claim.`,
-    0x38bdf8,
+    palette.electricBlue,
   );
 }
 
@@ -226,18 +243,22 @@ export function leaderboardCard(
           )
           .join("\n")
       : "No collections have been created yet.",
-    0xf59e0b,
+    palette.gold,
   );
 }
 
 export function actionResult(
   title: string,
   description: string,
-  color = 0x38bdf8,
+  color = palette.electricBlue,
 ) {
   return {
     embeds: [
-      new EmbedBuilder().setColor(color).setTitle(title).setDescription(description),
+      new EmbedBuilder()
+        .setColor(color)
+        .setTitle(title)
+        .setDescription(description)
+        .setFooter({ text: "✦ Mudae Husbando" }),
     ],
   };
 }
@@ -246,6 +267,6 @@ export function developerModeCard(enabled: boolean) {
   return actionResult(
     "Developer Mode",
     `Status: **${enabled ? "ON" : "OFF"}**\nNormal roll restrictions: **${enabled ? "BYPASSED" : "ACTIVE"}**`,
-    enabled ? 0xf59e0b : 0x64748b,
+    enabled ? palette.gold : palette.midnight,
   );
 }
