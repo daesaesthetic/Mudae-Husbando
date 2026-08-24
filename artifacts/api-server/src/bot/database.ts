@@ -45,7 +45,10 @@ export class GameDatabase {
         `INSERT INTO mudae_characters
           (name, aliases, series, media_type, gender, source_url, image_url, description, rarity, value, status)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'verified')
-         ON CONFLICT (LOWER(name), LOWER(series)) DO NOTHING`,
+         ON CONFLICT (LOWER(name), LOWER(series)) DO UPDATE SET
+           aliases = EXCLUDED.aliases,
+           image_url = COALESCE(EXCLUDED.image_url, mudae_characters.image_url),
+           updated_at = NOW()`,
         [
           character.name,
           character.aliases,

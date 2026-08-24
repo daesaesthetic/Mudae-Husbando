@@ -1,0 +1,181 @@
+Task #4 — Approved Artwork Source
+
+Use Mudae's official character database as the authoritative artwork source:
+
+Mudae Character Database
+
+The existing Mudae character browser provides exact character records including character name, series, gender, and associated character imagery.
+
+Artwork sourcing rule
+
+For the 12 verified characters currently present in our catalog:
+
+Search for the exact character on mudae.net.
+Confirm the character name matches.
+Confirm the series matches.
+Confirm the artwork depicts that exact character.
+Use the corresponding publicly accessible image URL associated with that Mudae character.
+Store that URL in the existing image_url field.
+Important
+
+Do not use:
+
+Google/Bing image search results
+unrelated image-hosting sites
+random fan-art URLs
+generic series images
+another character from the same series
+temporary/session-specific URLs
+Discord attachments
+locally hosted images
+
+Mudae's character database should be treated as the preferred and authoritative artwork source for this task.
+
+The goal is to make our character cards visually correspond to the characters represented in Mudae while keeping our own database and gameplay systems independent.
+
+Exact-character verification
+
+Do not match based on name alone.
+
+For each character verify:
+
+Our character
+      ↓
+Mudae character record
+      ↓
+Exact name
+      ↓
+Exact series
+      ↓
+Correct character artwork
+
+If a character has an alias or naming difference, use the Mudae record only after confirming it is the same character.
+
+Do not import Mudae gameplay data
+
+This task is artwork-only.
+
+Do NOT copy or import:
+
+Mudae ranks
+Mudae values
+Mudae ownership
+Mudae claims
+Mudae roll weights
+Mudae tags
+Mudae IDs as our character IDs
+Mudae database records
+Mudae user data
+
+Our existing:
+
+rarity
+value
+verification
+roll selection
+ownership
+claim system
+
+remain authoritative.
+
+We are only using the Mudae character database as the approved artwork reference/source.
+
+Image URL stability
+
+Before storing an image URL, verify that it is actually usable by our Discord embed implementation.
+
+If Mudae exposes the image through a stable public URL, use that URL.
+
+If the Mudae website's displayed image is loaded through a mechanism that does not provide a stable directly usable public image URL, do not invent or guess the underlying URL.
+
+In that situation, report the specific character and the technical limitation instead of inserting a broken URL.
+
+Do not introduce a scraping system just to work around this.
+
+Coverage target
+
+Populate:
+
+12 / 12
+
+characters if technically possible.
+
+For every character, report:
+
+Character	Series	Mudae match	Artwork URL	Discord verified
+...	...	✅	...	✅
+
+If any character cannot be safely mapped, leave its existing fallback intact and explain why.
+
+Preserve everything else
+
+Do not modify:
+
+roll pool
+claim pool
+Developer Mode
+/roll
+/ha
+/wa
+$ prefix system
+claim transactions
+global uniqueness
+expiration
+rarity
+value
+character verification
+character ownership
+
+No migration should be required.
+
+No new image table should be created.
+
+No scraping infrastructure should be created.
+
+Validation
+
+After populating the artwork:
+
+pnpm run typecheck
+pnpm --filter @workspace/api-server run test
+pnpm --filter @workspace/api-server run build
+
+Verify:
+
+GET /api/healthz
+
+and verify the Discord bot starts.
+
+Then test:
+
+/roll
+/ha
+/wa
+$roll
+$ha
+$wa
+
+and a successful:
+
+/claim
+
+Confirm the character artwork renders correctly in the existing character card.
+
+Git
+
+Do not commit.
+
+Report:
+
+git status --short
+git diff --stat
+git diff --check
+Final authority
+
+Use the official Mudae character database at mudae.net as the preferred artwork source.
+
+The objective is:
+
+Our verified character → exact Mudae character → corresponding Mudae artwork → our existing image_url → our existing Discord character card.
+
+Do not broaden this task beyond artwork population.

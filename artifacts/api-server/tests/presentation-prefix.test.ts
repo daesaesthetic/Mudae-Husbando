@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { seedCharacters } from "../src/bot/catalog.js";
 import { characterCard, claimedCharacterCard } from "../src/bot/presentation.js";
 import { parsePrefixCommand, prefixCommands } from "../src/bot/prefix.js";
 
@@ -27,6 +28,23 @@ describe("character presentation", () => {
     assert.match(
       JSON.stringify(card.components[0].toJSON()),
       new RegExp(`claim:${roll.id}`),
+    );
+  });
+
+  it("keeps the curated Mudae artwork and canonical-name aliases attached to the catalog", () => {
+    assert.equal(seedCharacters.length, 12);
+    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 11);
+    assert.deepEqual(
+      seedCharacters.find((character) => character.name === "Levi Ackerman")?.aliases,
+      ["Levi"],
+    );
+    assert.deepEqual(
+      seedCharacters.find((character) => character.name === "Eren Yeager")?.aliases,
+      ["Eren Jaeger"],
+    );
+    assert.equal(
+      seedCharacters.find((character) => character.name === "Kirby")?.imageUrl,
+      null,
     );
   });
 

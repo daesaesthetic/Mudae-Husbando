@@ -35,7 +35,7 @@ An actual Discord character-collection game with a verified-only catalog and per
 - `artifacts/api-server/src/bot/presentation.ts` — reusable Discord character cards and game embeds
 - `artifacts/api-server/src/bot/prefix.ts` — configurable message-prefix parser
 - `artifacts/api-server/src/bot/database.ts` — persistent Postgres game storage and verified-only queries
-- `artifacts/api-server/src/bot/catalog.ts` — manually curated verified seed catalog
+- `artifacts/api-server/src/bot/catalog.ts` — manually curated verified seed catalog and artwork references
 - `artifacts/api-server/src/bot/migrations.ts` — ordered, recorded, non-destructive database migrations
 - `artifacts/api-server/src/bot/economy.ts` — transactional currency and ledger service
 - `artifacts/api-server/src/bot/cooldown.ts` — persistent, concurrency-aware cooldown service

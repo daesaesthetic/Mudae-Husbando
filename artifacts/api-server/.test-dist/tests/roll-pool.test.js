@@ -11,6 +11,7 @@ class RollPool {
     };
     rolls = new Map();
     userLock = Promise.resolve();
+    lastCharacterFilter = undefined;
     async connect() {
         let releaseUserLock = () => { };
         let holdsUserLock = false;
@@ -28,11 +29,15 @@ class RollPool {
                     return { rows: [{ ...this.user }], rowCount: 1 };
                 }
                 if (sql.includes("FROM mudae_characters c")) {
+                    this.lastCharacterFilter = params[0];
                     return {
                         rows: [{
                                 id: 1,
                                 name: "Verified",
                                 series: "Test Series",
+                                mediaType: "anime",
+                                gender: params[0] ?? "unknown",
+                                imageUrl: null,
                                 rarity: "rare",
                                 value: 50,
                                 description: "A verified character.",
@@ -155,6 +160,10 @@ describe("persistent roll pool", () => {
             assert.equal(repeated.status, "claim_unavailable");
         assert.equal(pool.user.available_rolls, 9);
         assert.equal(pool.user.available_claims, 0);
+        const secondRoll = await database.roll("after-claim", "player", null);
+        assert.equal(secondRoll.status, "success");
+        assert.equal(pool.user.available_rolls, 8);
+        assert.equal(pool.user.available_claims, 0);
     });
     it("rejects a second claim while the claim pool is replenishing", async () => {
         const { database, pool } = databaseWithPool();
@@ -187,6 +196,17 @@ describe("persistent roll pool", () => {
         assert.equal(pool.user.available_claims, 1);
         assert.equal(pool.user.claim_replenishment_at, null);
     });
+    it("allows only one concurrent claim when one claim remains", async () => {
+        const { database, pool } = databaseWithPool();
+        await database.roll("concurrent-claim", "player", null);
+        const results = await Promise.all([
+            database.claimRoll("concurrent-claim", "claimer"),
+            database.claimRoll("concurrent-claim", "claimer"),
+        ]);
+        assert.equal(results.filter((result) => typeof result === "object" && result.status === "success").length, 1);
+        assert.equal(results.filter((result) => typeof result === "object" && result.status === "claim_unavailable").length, 1);
+        assert.equal(pool.user.available_claims, 0);
+    });
     it("lets developer mode bypass availability without consuming normal rolls", async () => {
         const { database, pool } = databaseWithPool();
         pool.user.available_rolls = 0;
@@ -195,5 +215,16 @@ describe("persistent roll pool", () => {
         assert.equal(result.status, "success");
         assert.equal(pool.user.available_rolls, 0);
         assert.equal(pool.user.rolls_used, 1);
+    });
+    it("uses the normal persistent roll transaction for deterministic category filters", async () => {
+        const { database, pool } = databaseWithPool();
+        const husbando = await database.roll("husbando", "player", null, false, "male");
+        assert.equal(husbando.status, "success");
+        assert.equal(pool.lastCharacterFilter, "male");
+        assert.equal(pool.user.available_rolls, 9);
+        const waifu = await database.roll("waifu", "player", null, false, "female");
+        assert.equal(waifu.status, "success");
+        assert.equal(pool.lastCharacterFilter, "female");
+        assert.equal(pool.user.available_rolls, 8);
     });
 });
