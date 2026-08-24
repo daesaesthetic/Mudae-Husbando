@@ -198,10 +198,10 @@ export class GameDatabase {
           [discordId],
         );
       }
-      const character = characterResult.rows[0];
+      const { id: characterId, ...character } = characterResult.rows[0];
       await client.query(
         "INSERT INTO mudae_rolls (id, discord_id, guild_id, character_id, expires_at) VALUES ($1,$2,$3,$4,$5)",
-        [id, discordId, guildId, character.id, expiresAt],
+        [id, discordId, guildId, characterId, expiresAt],
       );
       await client.query("COMMIT");
       return {
@@ -209,7 +209,7 @@ export class GameDatabase {
         roll: {
           id,
           discordId,
-          characterId: character.id,
+          characterId,
           expiresAt,
           claimedBy: null,
           ...character,

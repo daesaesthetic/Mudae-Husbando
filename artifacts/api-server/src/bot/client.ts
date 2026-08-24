@@ -148,6 +148,7 @@ export async function startDiscordBot() {
           rollId,
           interaction.user.id,
           interaction.guildId,
+          developerMode,
         );
         if (result.status === "exhausted") {
           const remainingMs = result.replenishmentAt
