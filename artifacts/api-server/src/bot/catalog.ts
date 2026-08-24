@@ -36,6 +36,11 @@ const mudaeArtworkByName: Record<string, string> = {
 const mudaeAliasesByName: Record<string, string[]> = {
   "Levi Ackerman": ["Levi"],
   "Eren Yeager": ["Eren Jaeger"],
+  "Son Goku": ["Goku"],
+  "Ichigo Kurosaki": ["Ichigo"],
+  "Edward Elric": ["Edward"],
+  "Tanjiro Kamado": ["Tanjiro"],
+  "Sailor Moon": ["Usagi Tsukino"],
 };
 
 const characterStats: Record<string, { value: number; popularityRank: number; rollWeight: number }> = {
@@ -51,6 +56,18 @@ const characterStats: Record<string, { value: number; popularityRank: number; ro
   Makima: { value: 250, popularityRank: 10, rollWeight: 2 },
   Frieren: { value: 235, popularityRank: 11, rollWeight: 2 },
   Kirby: { value: 120, popularityRank: 12, rollWeight: 6 },
+  "Son Goku": { value: 260, popularityRank: 13, rollWeight: 1 },
+  "Ichigo Kurosaki": { value: 210, popularityRank: 14, rollWeight: 3 },
+  "Edward Elric": { value: 190, popularityRank: 15, rollWeight: 3 },
+  "Tanjiro Kamado": { value: 185, popularityRank: 16, rollWeight: 4 },
+  "Denji": { value: 155, popularityRank: 17, rollWeight: 5 },
+  "Killua Zoldyck": { value: 215, popularityRank: 18, rollWeight: 2 },
+  "Yor Forger": { value: 245, popularityRank: 19, rollWeight: 2 },
+  "Nezuko Kamado": { value: 200, popularityRank: 20, rollWeight: 3 },
+  "Marin Kitagawa": { value: 175, popularityRank: 21, rollWeight: 4 },
+  "Rem": { value: 230, popularityRank: 22, rollWeight: 2 },
+  "Sailor Moon": { value: 165, popularityRank: 23, rollWeight: 4 },
+  "Anya Forger": { value: 135, popularityRank: 24, rollWeight: 6 },
 };
 
 export const seedCharacters: Omit<CatalogCharacter, "id">[] = [
@@ -66,6 +83,18 @@ export const seedCharacters: Omit<CatalogCharacter, "id">[] = [
   ["Makima", "Chainsaw Man", "anime", "female", "A composed and enigmatic devil hunter.", "rare"],
   ["Frieren", "Frieren: Beyond Journey's End", "anime", "female", "An elven mage learning what it means to remember.", "rare"],
   ["Kirby", "Kirby", "game", "unknown", "A cheerful hero with an appetite for impossible adventures.", "common"],
+  ["Son Goku", "Dragon Ball", "anime", "male", "A cheerful martial artist who protects Earth from impossible threats.", "rare"],
+  ["Ichigo Kurosaki", "Bleach", "anime", "male", "A substitute Soul Reaper defending both the living and the dead.", "uncommon"],
+  ["Edward Elric", "Fullmetal Alchemist", "anime", "male", "A gifted alchemist searching for a way to restore what was lost.", "uncommon"],
+  ["Tanjiro Kamado", "Demon Slayer", "anime", "male", "A compassionate demon slayer fighting to save his sister.", "uncommon"],
+  ["Denji", "Chainsaw Man", "anime", "male", "A devil hunter with a chainsaw-powered transformation.", "common"],
+  ["Killua Zoldyck", "Hunter x Hunter", "anime", "male", "A lightning-fast assassin choosing friendship over his family legacy.", "rare"],
+  ["Yor Forger", "Spy × Family", "anime", "female", "A devoted fake wife with an extraordinary secret profession.", "rare"],
+  ["Nezuko Kamado", "Demon Slayer", "anime", "female", "A resilient sister protecting humanity despite her transformation.", "uncommon"],
+  ["Marin Kitagawa", "My Dress-Up Darling", "anime", "female", "A joyful cosplayer who celebrates every character she loves.", "uncommon"],
+  ["Rem", "Re:Zero −Starting Life in Another World−", "anime", "female", "A loyal oni maid with formidable courage and devotion.", "rare"],
+  ["Sailor Moon", "Sailor Moon", "anime", "female", "A guardian of love and justice defending the world.", "uncommon"],
+  ["Anya Forger", "Spy × Family", "anime", "female", "A telepathic child determined to keep her unusual family together.", "common"],
 ].map(([name, series, mediaType, gender, description, rarity]) => ({
   name,
   aliases: [],

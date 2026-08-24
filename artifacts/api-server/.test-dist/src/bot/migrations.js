@@ -115,6 +115,27 @@ export const migrations = [
         CHECK (available_claims >= 0);
     `,
     },
+    {
+        id: "007",
+        name: "character-popularity-and-roll-stats",
+        sql: `
+      ALTER TABLE mudae_characters
+        ADD COLUMN IF NOT EXISTS popularity_rank INTEGER NOT NULL DEFAULT 9999,
+        ADD COLUMN IF NOT EXISTS roll_weight INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE mudae_characters
+        ADD CONSTRAINT mudae_characters_popularity_rank_positive CHECK (popularity_rank > 0),
+        ADD CONSTRAINT mudae_characters_roll_weight_positive CHECK (roll_weight > 0);
+    `,
+    },
+    {
+        id: "008",
+        name: "shorten-unclaimed-roll-expiration",
+        sql: `
+      UPDATE mudae_rolls
+      SET expires_at = LEAST(expires_at, created_at + INTERVAL '3 minutes')
+      WHERE claimed_by IS NULL;
+    `,
+    },
 ];
 export function pendingMigrations(appliedIds, available = migrations) {
     return available.filter((migration) => !appliedIds.has(migration.id));
