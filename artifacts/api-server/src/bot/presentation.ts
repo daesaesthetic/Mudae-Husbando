@@ -179,22 +179,26 @@ export function profileCard(displayName: string, profile: {
 export function searchResults(results: {
   name: string;
   series: string;
+  imageUrl: string | null;
   rarity: string;
   value: number;
 }[]) {
-  const embed = new EmbedBuilder()
-    .setColor(0xa78bfa)
-    .setTitle("Verified Character Search")
-    .setDescription(
-      results
-        .map(
-          (character) =>
-            `**${character.name}**\n${character.series} · ${character.rarity} · Value ${character.value}`,
+  return {
+    embeds: results.map((character) => {
+      const embed = new EmbedBuilder()
+        .setColor(0xa78bfa)
+        .setTitle(character.name)
+        .setDescription(
+          `**${character.series}**\n${character.rarity} · Value ${character.value}`,
         )
-        .join("\n\n"),
-    )
-    .setFooter({ text: `${results.length} verified result${results.length === 1 ? "" : "s"}` });
-  return { embeds: [embed] };
+        .setFooter({
+          text: `Verified character • ${results.length} result${results.length === 1 ? "" : "s"}`,
+        });
+      if (character.imageUrl) embed.setImage(character.imageUrl);
+      else embed.addFields({ name: "Artwork", value: "Artwork coming soon" });
+      return embed;
+    }),
+  };
 }
 
 export function actionResult(

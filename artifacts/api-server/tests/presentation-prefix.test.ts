@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { seedCharacters } from "../src/bot/catalog.js";
-import { characterCard, claimedCharacterCard } from "../src/bot/presentation.js";
+import {
+  characterCard,
+  claimedCharacterCard,
+  searchResults,
+} from "../src/bot/presentation.js";
 import { parsePrefixCommand, prefixCommands } from "../src/bot/prefix.js";
 
 describe("character presentation", () => {
@@ -62,6 +66,32 @@ describe("character presentation", () => {
       });
       assert.equal(card.embeds[0].data.image?.url, character.imageUrl);
     }
+  });
+
+  it("renders search results as image-backed character cards", () => {
+    const results = searchResults([
+      {
+        name: "Frieren",
+        series: "Frieren: Beyond Journey's End",
+        imageUrl: "https://mudae.net/uploads/9949210/sxCkz8W~aHZ9NcQ.png",
+        rarity: "rare",
+        value: 82,
+      },
+      {
+        name: "Unknown Character",
+        series: "Unknown Series",
+        imageUrl: null,
+        rarity: "common",
+        value: 1,
+      },
+    ]);
+    assert.equal(results.embeds.length, 2);
+    assert.equal(results.embeds[0].data.title, "Frieren");
+    assert.equal(
+      results.embeds[0].data.image?.url,
+      "https://mudae.net/uploads/9949210/sxCkz8W~aHZ9NcQ.png",
+    );
+    assert.ok(results.embeds[1].data.fields?.some((field) => field.name === "Artwork"));
   });
 
   it("uses a configured image URL or an explicit safe fallback", () => {

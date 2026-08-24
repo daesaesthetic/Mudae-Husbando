@@ -407,7 +407,7 @@ export class GameDatabase {
     const normalizedQuery = normalizeSearchQuery(query);
     if (!normalizedQuery) return [];
     const result = await this.pool.query(
-      `SELECT id, name, series, rarity, value FROM mudae_characters
+      `SELECT id, name, series, image_url AS "imageUrl", rarity, value FROM mudae_characters
        WHERE status = 'verified' AND (
           regexp_replace(name, '\\s+', ' ', 'g') ILIKE $1
           OR regexp_replace(series, '\\s+', ' ', 'g') ILIKE $1
@@ -423,6 +423,7 @@ export class GameDatabase {
       id: number;
       name: string;
       series: string;
+      imageUrl: string | null;
       rarity: string;
       value: number;
     }[];
