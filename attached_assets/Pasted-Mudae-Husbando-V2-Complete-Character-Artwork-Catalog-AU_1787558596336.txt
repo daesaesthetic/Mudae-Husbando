@@ -1,0 +1,523 @@
+Mudae Husbando V2 — Complete Character Artwork Catalog
+AUTHORITATIVE REPLIT AGENT IMPLEMENTATION PROMPT
+
+Continue working on the existing Mudae Husbando V2 repository.
+
+This is the follow-up to the completed Character Presentation & Mudae-Style Interaction Layer milestone.
+
+The presentation system, /ha, /wa, $ prefix commands, shared command routing, roll pool, claim pool, Developer Mode, verified-character system, and global uniqueness system are already implemented and working.
+
+The purpose of this task is specifically to populate the existing verified character catalog with accurate artwork.
+
+Do not rebuild or redesign the systems that already work.
+
+1. OBJECTIVE
+
+The current character-card system already supports:
+
+persistent image_url
+character artwork rendering
+artwork fallback
+reusable character embeds/cards
+/roll
+/ha
+/wa
+successful claim cards
+
+However, the current verified catalog has:
+
+0 of 12 characters with approved artwork
+
+The objective is to populate artwork for every currently verified character in the catalog.
+
+The target is:
+
+12 / 12 verified characters
+→ accurate approved artwork
+
+Do not expand the character catalog as part of this task.
+
+2. INSPECT THE ACTUAL CURRENT CATALOG FIRST
+
+Before modifying anything, inspect the actual current database/seed data and identify every currently verified character.
+
+Do not rely on an old report or assume the catalog still contains exactly the same characters.
+
+Produce an internal mapping of:
+
+Character
+Series
+Gender/category
+Current image_url
+
+The repository's current state is authoritative.
+
+3. USE THE EXISTING IMAGE ARCHITECTURE
+
+The repository already has:
+
+image_url
+
+and the presentation layer already knows how to consume it.
+
+Use that existing field.
+
+Do NOT create:
+
+a second image table
+a new artwork database
+a separate character-image service
+binary image storage
+a new image schema
+a new presentation system
+
+No database migration should be necessary unless inspection unexpectedly proves otherwise.
+
+If the existing architecture is sufficient, simply populate the existing character metadata.
+
+4. ARTWORK ACCURACY IS MORE IMPORTANT THAN COMPLETENESS
+
+For every character, the artwork must depict the exact character.
+
+Do not use:
+
+Character A
+→ another character from the same anime
+
+Do not use:
+
+Character A
+→ generic series artwork
+
+Do not use:
+
+Character A
+→ group image where the character cannot be confidently identified
+
+Do not use uncertain artwork merely to achieve 12/12 coverage.
+
+If there is genuinely no reliable artwork available, leave that character's image_url unset and allow the existing fallback to remain.
+
+Accuracy is more important than forcing every field to be populated.
+
+5. SOURCE QUALITY
+
+Use stable, appropriate image URLs wherever possible.
+
+Prefer artwork that is:
+
+clearly the correct character
+visually suitable for a Discord character card
+reasonably high quality
+accessible directly by Discord
+unlikely to immediately break
+not obviously watermarked
+not misleading
+
+Avoid:
+
+random search-result URLs
+temporary URLs
+local filesystem paths
+URLs requiring authentication
+URLs that only work in a browser session
+tracking URLs
+questionable third-party uploads when a better source is available
+
+Do not build a web scraper.
+
+Do not introduce an automated image-scraping pipeline.
+
+This is a curated catalog, not an image crawler.
+
+6. EXACT CHARACTER MAPPING
+
+For every populated image, verify the mapping.
+
+The final report must include a table similar to:
+
+Character	Series	Image	Source/status
+Character A	Series	image_url	Approved
+Character B	Series	image_url	Approved
+...	...	...	...
+
+Do not simply report:
+
+"All images added."
+
+We need to know exactly what artwork was assigned to every character.
+
+7. PRESERVE CHARACTER DATA
+
+Do not change:
+
+character names
+series
+aliases
+verification status
+gender/category
+rarity
+value
+ownership
+claims
+roll history
+expiration
+favorites
+wishlists
+
+unless a clearly documented data error is discovered during artwork mapping.
+
+Even then, do not silently change unrelated data.
+
+The artwork task should remain an artwork task.
+
+8. SEED/DATABASE CONSISTENCY
+
+Determine how the current 12-character catalog is populated.
+
+If artwork is defined in seed data, update the seed data using the existing project conventions.
+
+If artwork is persisted directly in the database, update it using the existing database conventions.
+
+The important requirement is:
+
+A fresh database initialization and the current development database should both produce the same intended character artwork metadata.
+
+Avoid creating a situation where:
+
+seed data says image A
+database says image B
+
+without a deliberate migration/seed strategy.
+
+9. DO NOT RESET THE DATABASE
+
+Absolutely do not:
+
+reset PostgreSQL
+recreate tables
+delete characters
+re-run destructive seed logic
+modify historical roll records
+modify historical claims
+modify collection ownership
+modify lifetime statistics
+
+This is an additive metadata update.
+
+10. CHARACTER CARD COMPATIBILITY
+
+Do not redesign the existing character card.
+
+The current card already supports:
+
+character name
+series
+rarity
+value
+roller
+expiration
+claim button
+image
+
+The only goal here is to replace:
+
+Artwork coming soon
+
+with actual artwork wherever approved artwork exists.
+
+If the current presentation layer requires a tiny compatibility fix for an image URL, make the smallest possible change.
+
+Do not redesign the embed.
+
+11. VERIFY EVERY IMAGE THROUGH THE ACTUAL CARD
+
+After assigning artwork, test the characters through the existing presentation system.
+
+Ideally verify that each character's card renders:
+
+Character Name
+Series
+Rarity
+Value
+Artwork
+
+and that Discord can actually display the image.
+
+A URL existing in the database is not sufficient if Discord cannot render it.
+
+12. TEST /roll, /ha, AND /wa
+
+Use the existing commands to verify artwork rendering.
+
+Test:
+
+/roll
+/ha
+/wa
+
+where applicable.
+
+Verify that characters with artwork display the image correctly.
+
+Verify that the category commands still select the appropriate characters.
+
+Do not modify category logic as part of this task.
+
+13. CLAIM CARD
+
+Verify that claiming an illustrated character still produces the completed character card.
+
+Test:
+
+/claim
+
+after a roll.
+
+The successful claim should retain the character artwork.
+
+Do not modify claim mechanics.
+
+14. FALLBACK REGRESSION
+
+Even if all current characters receive artwork, keep the existing fallback behavior intact.
+
+The presentation layer must still gracefully handle:
+
+image_url = null
+
+or an unavailable image.
+
+Do not remove:
+
+Artwork coming soon
+
+or the equivalent fallback.
+
+Future characters may not have artwork immediately.
+
+15. TESTS
+
+Inspect the existing presentation tests.
+
+Add or update focused tests where appropriate.
+
+At minimum verify:
+
+Artwork metadata
+verified characters have their intended image URLs
+image URLs are associated with the correct character
+Character presentation
+populated image URL produces an image in the embed
+missing image still uses the fallback
+Existing behavior
+
+Ensure the artwork change does not break:
+
+roll pool
+claim pool
+/roll
+/ha
+/wa
+$ commands
+Developer Mode
+expiration
+claim availability
+global uniqueness
+
+Do not weaken existing tests.
+
+16. VALIDATION
+
+Run:
+
+pnpm run typecheck
+pnpm --filter @workspace/api-server run test
+pnpm --filter @workspace/api-server run build
+
+Verify:
+
+GET /api/healthz
+
+returns:
+
+{"status":"ok"}
+
+Verify the Discord bot starts successfully.
+
+If dependencies are missing, use:
+
+pnpm install --frozen-lockfile
+
+Do not reinstall unnecessarily if the environment is already healthy.
+
+17. LIVE DISCORD TESTING
+
+If live Discord testing is available:
+
+General roll
+/roll
+
+Verify the character card displays artwork when the rolled character has an approved image.
+
+Husbando
+/ha
+
+Verify the card displays the correct character artwork.
+
+Waifu
+/wa
+
+Verify the card displays the correct character artwork.
+
+Prefix
+$ha
+$wa
+$roll
+
+Verify the same character presentation system is used.
+
+Claim
+
+Roll a character, then:
+
+/claim
+
+Verify the completed card retains the artwork.
+
+18. NO GAMEPLAY CHANGES
+
+This task must NOT change:
+
+roll pool size
+roll replenishment
+claim pool size
+claim replenishment
+Developer Mode
+roll selection rules
+claim selection rules
+character uniqueness
+ownership
+expiration
+lifetime roll counts
+lifetime claim counts
+
+If any existing gameplay test fails after the artwork update, investigate and fix the regression rather than changing the gameplay expectation.
+
+19. WORKFLOW
+
+Do not change workflow architecture.
+
+Do not create another Discord workflow.
+
+Do not create another API process.
+
+Only restart the existing workflow if necessary after the implementation.
+
+20. GIT
+
+Do not commit.
+
+At the end run:
+
+git status --short
+git diff --stat
+git diff --check
+
+Leave the repository in a reviewable working state.
+
+21. FINAL REPORT
+
+Report:
+
+Artwork Coverage
+
+Provide the exact current verified catalog:
+
+X / Y characters have approved artwork
+
+For every character, report:
+
+character
+series
+artwork status
+image source/reference
+whether Discord rendering was verified
+Presentation
+
+Confirm:
+
+/roll artwork
+/ha artwork
+/wa artwork
+claim-card artwork
+missing-image fallback
+Database
+
+Report whether any migration was required.
+
+If not:
+
+No database migration required; existing image_url metadata was populated.
+
+Gameplay
+
+Confirm that no gameplay rules were changed.
+
+Validation
+
+Report exact results for:
+
+typecheck
+tests
+build
+health endpoint
+Discord startup
+live testing
+Files Changed
+
+List every added and modified file.
+
+Git
+
+Report:
+
+git status --short
+git diff --stat
+git diff --check
+
+Confirm:
+
+No Git commit was created.
+
+FINAL AUTHORITY
+
+This milestone is about finishing the artwork layer that the existing character-card system already supports.
+
+Do not rebuild the presentation system.
+
+Do not redesign the embeds.
+
+Do not modify the roll or claim engines.
+
+Do not expand the character catalog.
+
+Do not scrape the internet.
+
+Do not introduce a new database.
+
+Do not introduce unrelated features.
+
+The desired result is simply:
+
+Verified Character
+       ↓
+Existing image_url
+       ↓
+Existing Character Card
+       ↓
+Actual character artwork
+
+for every character where accurate, approved artwork is available.
+
+Preserve everything already working. Populate the artwork carefully. Validate the actual Discord cards. Do not commit.
