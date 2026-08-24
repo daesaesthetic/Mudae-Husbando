@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { seedCharacters } from "../src/bot/catalog.js";
-import { characterCard, claimedCharacterCard } from "../src/bot/presentation.js";
-import { parsePrefixCommand, prefixCommands } from "../src/bot/prefix.js";
+import { characterCard, claimedCharacterCard, leaderboardCard, remainingCharactersCard, searchResults, } from "../src/bot/presentation.js";
+import { canonicalPrefixCommand, parsePrefixCommand, prefixCommands, } from "../src/bot/prefix.js";
 describe("character presentation", () => {
     const roll = {
         id: "00000000-0000-0000-0000-000000000001",
@@ -47,6 +47,28 @@ describe("character presentation", () => {
             assert.equal(card.embeds[0].data.image?.url, character.imageUrl);
         }
     });
+    it("renders search results as image-backed character cards", () => {
+        const results = searchResults([
+            {
+                name: "Frieren",
+                series: "Frieren: Beyond Journey's End",
+                imageUrl: "https://mudae.net/uploads/9949210/sxCkz8W~aHZ9NcQ.png",
+                rarity: "rare",
+                value: 82,
+            },
+            {
+                name: "Unknown Character",
+                series: "Unknown Series",
+                imageUrl: null,
+                rarity: "common",
+                value: 1,
+            },
+        ]);
+        assert.equal(results.embeds.length, 2);
+        assert.equal(results.embeds[0].data.title, "Frieren");
+        assert.equal(results.embeds[0].data.image?.url, "https://mudae.net/uploads/9949210/sxCkz8W~aHZ9NcQ.png");
+        assert.ok(results.embeds[1].data.fields?.some((field) => field.name === "Artwork"));
+    });
     it("uses a configured image URL or an explicit safe fallback", () => {
         const withImage = characterCard({ ...roll, imageUrl: "https://cdn.example.test/gojo.png" });
         assert.equal(withImage.embeds[0].data.image?.url, "https://cdn.example.test/gojo.png");
@@ -86,9 +108,39 @@ describe("prefix command parsing", () => {
         assert.equal(parsePrefixCommand("ordinary message"), null);
     });
     it("keeps the supported command surface explicit", () => {
-        for (const command of ["ha", "wa", "roll", "claim", "search", "profile"]) {
+        for (const command of [
+            "ha",
+            "wa",
+            "roll",
+            "claim",
+            "search",
+            "profile",
+            "m",
+            "marry",
+            "pr",
+            "harem",
+            "wish",
+            "fav",
+            "left",
+            "top",
+        ]) {
             assert.equal(prefixCommands.has(command), true);
         }
         assert.equal(prefixCommands.has("unknown"), false);
+        assert.equal(canonicalPrefixCommand("marry"), "roll");
+        assert.equal(canonicalPrefixCommand("harem"), "collection");
+        assert.equal(canonicalPrefixCommand("wish"), "wishlist");
+        assert.equal(canonicalPrefixCommand("top"), "top");
+    });
+});
+describe("Mudae-style utility cards", () => {
+    it("renders remaining-character and collection-leaderboard summaries", () => {
+        const remaining = remainingCharactersCard(11);
+        assert.match(remaining.embeds[0].data.description ?? "", /11/);
+        const leaderboard = leaderboardCard([
+            { displayName: "Player One", uniqueCharacters: 4, totalCopies: 5 },
+        ]);
+        assert.match(leaderboard.embeds[0].data.description ?? "", /1\. Player One/);
+        assert.match(leaderboard.embeds[0].data.description ?? "", /4 unique/);
     });
 });

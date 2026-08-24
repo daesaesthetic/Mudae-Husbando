@@ -429,6 +429,39 @@ export class GameDatabase {
     }[];
   }
 
+  async remainingCharacters() {
+    const result = await this.pool.query(
+      `SELECT COUNT(*)::int AS count
+       FROM mudae_characters c
+       WHERE c.status = 'verified'
+         AND NOT EXISTS (
+           SELECT 1 FROM mudae_collections o WHERE o.character_id = c.id
+         )`,
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  async leaderboard(limit = 10) {
+    const result = await this.pool.query(
+      `SELECT u.discord_id AS "discordId", u.display_name AS "displayName",
+              COUNT(o.character_id)::int AS "uniqueCharacters",
+              COALESCE(SUM(o.quantity), 0)::int AS "totalCopies"
+       FROM mudae_users u
+       LEFT JOIN mudae_collections o ON o.discord_id = u.discord_id
+       GROUP BY u.discord_id, u.display_name
+       HAVING COUNT(o.character_id) > 0
+       ORDER BY COUNT(o.character_id) DESC, COALESCE(SUM(o.quantity), 0) DESC, u.display_name
+       LIMIT $1`,
+      [limit],
+    );
+    return result.rows as {
+      discordId: string;
+      displayName: string;
+      uniqueCharacters: number;
+      totalCopies: number;
+    }[];
+  }
+
   async resolveCharacter(query: string): Promise<CharacterResolution> {
     const normalizedQuery = normalizeSearchQuery(query);
     if (!normalizedQuery) return { status: "not_found", matches: [] };

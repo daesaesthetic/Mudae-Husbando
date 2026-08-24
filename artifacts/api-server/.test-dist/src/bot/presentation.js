@@ -101,14 +101,32 @@ export function profileCard(displayName, profile) {
     };
 }
 export function searchResults(results) {
-    const embed = new EmbedBuilder()
-        .setColor(0xa78bfa)
-        .setTitle("Verified Character Search")
-        .setDescription(results
-        .map((character) => `**${character.name}**\n${character.series} · ${character.rarity} · Value ${character.value}`)
-        .join("\n\n"))
-        .setFooter({ text: `${results.length} verified result${results.length === 1 ? "" : "s"}` });
-    return { embeds: [embed] };
+    return {
+        embeds: results.map((character) => {
+            const embed = new EmbedBuilder()
+                .setColor(0xa78bfa)
+                .setTitle(character.name)
+                .setDescription(`**${character.series}**\n${character.rarity} · Value ${character.value}`)
+                .setFooter({
+                text: `Verified character • ${results.length} result${results.length === 1 ? "" : "s"}`,
+            });
+            if (character.imageUrl)
+                embed.setImage(character.imageUrl);
+            else
+                embed.addFields({ name: "Artwork", value: "Artwork coming soon" });
+            return embed;
+        }),
+    };
+}
+export function remainingCharactersCard(count) {
+    return actionResult("Characters Remaining", `**${count}** verified character${count === 1 ? "" : "s"} remain available to claim.`, 0x38bdf8);
+}
+export function leaderboardCard(entries) {
+    return actionResult("Collection Leaderboard", entries.length
+        ? entries
+            .map((entry, index) => `**${index + 1}. ${entry.displayName}** — ${entry.uniqueCharacters} unique · ${entry.totalCopies} total`)
+            .join("\n")
+        : "No collections have been created yet.", 0xf59e0b);
 }
 export function actionResult(title, description, color = 0x38bdf8) {
     return {

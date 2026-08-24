@@ -201,6 +201,35 @@ export function searchResults(results: {
   };
 }
 
+export function remainingCharactersCard(count: number) {
+  return actionResult(
+    "Characters Remaining",
+    `**${count}** verified character${count === 1 ? "" : "s"} remain available to claim.`,
+    0x38bdf8,
+  );
+}
+
+export function leaderboardCard(
+  entries: {
+    displayName: string;
+    uniqueCharacters: number;
+    totalCopies: number;
+  }[],
+) {
+  return actionResult(
+    "Collection Leaderboard",
+    entries.length
+      ? entries
+          .map(
+            (entry, index) =>
+              `**${index + 1}. ${entry.displayName}** — ${entry.uniqueCharacters} unique · ${entry.totalCopies} total`,
+          )
+          .join("\n")
+      : "No collections have been created yet.",
+    0xf59e0b,
+  );
+}
+
 export function actionResult(
   title: string,
   description: string,

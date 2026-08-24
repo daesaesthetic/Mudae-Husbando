@@ -10,12 +10,31 @@ export function parsePrefixCommand(content, prefix = process.env.BOT_PREFIX ?? "
 }
 export const prefixCommands = new Set([
     "roll",
+    "m",
+    "marry",
     "ha",
     "wa",
     "claim",
     "profile",
+    "pr",
     "collection",
+    "harem",
     "search",
     "favorite",
+    "fav",
     "wishlist",
+    "wish",
+    "left",
+    "top",
 ]);
+export const prefixCommandAliases = {
+    m: "roll",
+    marry: "roll",
+    pr: "profile",
+    harem: "collection",
+    fav: "favorite",
+    wish: "wishlist",
+};
+export function canonicalPrefixCommand(command) {
+    return prefixCommandAliases[command] ?? command;
+}

@@ -16,10 +16,16 @@ import {
   claimedCharacterCard,
   collectionPage,
   developerModeCard,
+  leaderboardCard,
   profileCard,
+  remainingCharactersCard,
   searchResults,
 } from "./presentation.js";
-import { parsePrefixCommand, prefixCommands } from "./prefix.js";
+import {
+  canonicalPrefixCommand,
+  parsePrefixCommand,
+  prefixCommands,
+} from "./prefix.js";
 
 const commands = [
   new SlashCommandBuilder().setName("developer").setDescription("Toggle authorized developer testing tools"),
@@ -105,6 +111,12 @@ async function executeCommand(database: GameDatabase, context: CommandContext): 
   if (command === "search") {
     const results = await database.search(args.join(" "));
     return results.length ? searchResults(results) : "No verified characters matched that search.";
+  }
+  if (command === "left") {
+    return remainingCharactersCard(await database.remainingCharacters());
+  }
+  if (command === "top") {
+    return leaderboardCard(await database.leaderboard());
   }
   if (command === "collection") {
     const collection = await database.collection(userId);
@@ -242,7 +254,7 @@ export async function startDiscordBot() {
       await database.ensureUser(message.author.id, message.member?.displayName ?? message.author.displayName);
       await handleCommand(
         database,
-        { userId: message.author.id, displayName: message.member?.displayName ?? message.author.displayName, guildId: message.guildId, command: parsed.command, args: parsed.args },
+        { userId: message.author.id, displayName: message.member?.displayName ?? message.author.displayName, guildId: message.guildId, command: canonicalPrefixCommand(parsed.command), args: parsed.args },
         (response) => message.reply(response),
       );
     } catch (error) {

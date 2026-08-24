@@ -4,9 +4,15 @@ import { seedCharacters } from "../src/bot/catalog.js";
 import {
   characterCard,
   claimedCharacterCard,
+  leaderboardCard,
+  remainingCharactersCard,
   searchResults,
 } from "../src/bot/presentation.js";
-import { parsePrefixCommand, prefixCommands } from "../src/bot/prefix.js";
+import {
+  canonicalPrefixCommand,
+  parsePrefixCommand,
+  prefixCommands,
+} from "../src/bot/prefix.js";
 
 describe("character presentation", () => {
   const roll = {
@@ -146,9 +152,41 @@ describe("prefix command parsing", () => {
   });
 
   it("keeps the supported command surface explicit", () => {
-    for (const command of ["ha", "wa", "roll", "claim", "search", "profile"]) {
+    for (const command of [
+      "ha",
+      "wa",
+      "roll",
+      "claim",
+      "search",
+      "profile",
+      "m",
+      "marry",
+      "pr",
+      "harem",
+      "wish",
+      "fav",
+      "left",
+      "top",
+    ]) {
       assert.equal(prefixCommands.has(command), true);
     }
     assert.equal(prefixCommands.has("unknown"), false);
+    assert.equal(canonicalPrefixCommand("marry"), "roll");
+    assert.equal(canonicalPrefixCommand("harem"), "collection");
+    assert.equal(canonicalPrefixCommand("wish"), "wishlist");
+    assert.equal(canonicalPrefixCommand("top"), "top");
+  });
+});
+
+describe("Mudae-style utility cards", () => {
+  it("renders remaining-character and collection-leaderboard summaries", () => {
+    const remaining = remainingCharactersCard(11);
+    assert.match(remaining.embeds[0].data.description ?? "", /11/);
+
+    const leaderboard = leaderboardCard([
+      { displayName: "Player One", uniqueCharacters: 4, totalCopies: 5 },
+    ]);
+    assert.match(leaderboard.embeds[0].data.description ?? "", /1\. Player One/);
+    assert.match(leaderboard.embeds[0].data.description ?? "", /4 unique/);
   });
 });
