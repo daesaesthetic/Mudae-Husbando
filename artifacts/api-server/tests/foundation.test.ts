@@ -114,10 +114,11 @@ describe("foundation validation", () => {
 
 describe("migration planning", () => {
   it("keeps migrations ordered and excludes already-applied IDs", () => {
-    assert.deepEqual(migrations.map((migration) => migration.id), ["001", "002", "003", "004"]);
+    assert.deepEqual(migrations.map((migration) => migration.id), ["001", "002", "003", "004", "005"]);
+    assert.match(migrations.find((migration) => migration.id === "005")?.sql ?? "", /SET DEFAULT 10/);
     assert.deepEqual(
       pendingMigrations(new Set(["001"])).map((migration) => migration.id),
-       ["002", "003", "004"],
+       ["002", "003", "004", "005"],
     );
     assert.deepEqual(
       pendingMigrations(new Set(migrations.map((migration) => migration.id))),

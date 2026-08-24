@@ -95,6 +95,14 @@ export const migrations = [
         CHECK (available_rolls >= 0);
     `,
     },
+    {
+        id: "005",
+        name: "increase-roll-pool-default",
+        sql: `
+      ALTER TABLE mudae_users
+        ALTER COLUMN available_rolls SET DEFAULT 10;
+    `,
+    },
 ];
 export function pendingMigrations(appliedIds, available = migrations) {
     return available.filter((migration) => !appliedIds.has(migration.id));

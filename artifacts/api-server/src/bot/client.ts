@@ -213,7 +213,7 @@ export async function startDiscordBot() {
             wishlist_count: 0,
             claims_count: 0,
             rolls_used: 0,
-            available_rolls: Number(process.env.ROLL_POOL_SIZE ?? 5),
+            available_rolls: Number(process.env.ROLL_POOL_SIZE ?? 10),
             roll_replenishment_at: null,
             currency: 0,
           }),

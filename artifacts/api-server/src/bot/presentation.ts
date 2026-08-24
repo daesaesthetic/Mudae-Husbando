@@ -106,7 +106,7 @@ export function profileCard(displayName: string, profile: {
           { name: "Rolls", value: `${profile.rolls_used}`, inline: true },
           {
             name: "Rolls Available",
-            value: `${profile.available_rolls} / ${Number(process.env.ROLL_POOL_SIZE ?? 5)}`,
+            value: `${profile.available_rolls} / ${Number(process.env.ROLL_POOL_SIZE ?? 10)}`,
             inline: true,
           },
           ...(profile.available_rolls === 0 && profile.roll_replenishment_at

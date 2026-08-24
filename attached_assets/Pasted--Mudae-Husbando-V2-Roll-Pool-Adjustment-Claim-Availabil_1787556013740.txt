@@ -1,0 +1,634 @@
+# Mudae Husbando V2 — Roll Pool Adjustment & Claim Availability Fix
+
+## OBJECTIVE
+
+Make two focused corrections to the current Mudae Husbando V2 implementation:
+
+1. Change the normal roll pool from **5 rolls to 10 rolls**.
+2. Fix the current `/claim` behavior so that a user **cannot successfully claim again immediately after claiming a character** when the intended claim availability restriction says they must wait before claiming again.
+
+The current roll counter and Developer Mode are working correctly.
+
+**Do not rewrite or regress the roll-pool system.**
+
+This is a focused corrective task.
+
+---
+
+# 1. INSPECT THE ACTUAL CURRENT IMPLEMENTATION FIRST
+
+Before changing anything, inspect the current repository state.
+
+Do not assume the previous Agent's implementation report is perfectly accurate.
+
+Inspect:
+
+* `/roll`
+* `/claim`
+* `GameDatabase`
+* claim transaction logic
+* user database state
+* roll pool state
+* migrations
+* claim-related configuration
+* existing cooldown implementation
+* Developer Mode
+* `/profile`
+* all relevant tests
+
+In particular, determine:
+
+> Why can the same user currently execute `/claim` successfully twice in immediate succession?
+
+Do not guess.
+
+Trace the actual `/claim` execution path and identify the existing intended claim-availability mechanism, if one already exists.
+
+---
+
+# 2. ROLL POOL: CHANGE 5 → 10
+
+The normal roll pool must now be:
+
+```text
+10 rolls
+```
+
+Change the default configuration from:
+
+```text
+ROLL_POOL_SIZE = 5
+```
+
+to:
+
+```text
+ROLL_POOL_SIZE = 10
+```
+
+Keep the configuration environment-driven.
+
+Do not hard-code `10` inside `/roll`.
+
+The intended configuration remains:
+
+```text
+ROLL_POOL_SIZE
+default = 10
+```
+
+Keep:
+
+```text
+ROLL_REPLENISHMENT_MS
+default = 1 hour
+```
+
+unchanged unless the actual repository shows a reason it must be modified.
+
+---
+
+# 3. DATABASE DEFAULT / EXISTING USERS
+
+Inspect how the current migration initialized:
+
+```text
+available_rolls
+```
+
+The default pool should now be 10.
+
+Be careful with existing users.
+
+Do **not** blindly overwrite an existing user's current `available_rolls` value if they have already been using the new roll-pool system.
+
+For example:
+
+```text
+available_rolls = 7
+```
+
+must remain:
+
+```text
+7
+```
+
+when changing the configured maximum from 5 to 10.
+
+The configuration defines the maximum/new pool size; it should not arbitrarily reset an already depleted or partially consumed user's current state.
+
+When a user's pool is replenished, it should replenish to the current configured pool size:
+
+```text
+ROLL_POOL_SIZE = 10
+```
+
+Therefore future replenishment should restore:
+
+```text
+10 rolls
+```
+
+not 5.
+
+Use the repository's actual migration/configuration architecture to make this change safely.
+
+Do not reset:
+
+* claims
+* collections
+* favorites
+* wishlists
+* currency
+* lifetime `rolls_used`
+* existing roll records
+* character ownership
+
+---
+
+# 4. PROFILE
+
+Update `/profile` so the roll display reflects the new configured maximum.
+
+For example:
+
+```text
+Rolls Available: 10 / 10
+```
+
+or:
+
+```text
+Rolls Available: 7 / 10
+```
+
+Do not hard-code `/ 10` into presentation code if the existing implementation can read the configured pool size.
+
+The profile should remain configuration-driven.
+
+---
+
+# 5. CLAIM BUG — INVESTIGATE FIRST
+
+The current behavior is:
+
+```text
+/roll
+→ character appears
+
+/claim
+→ successfully claims
+
+/claim immediately again
+→ currently succeeds
+```
+
+That is incorrect for the intended gameplay.
+
+Before changing code, identify exactly why the second `/claim` succeeds.
+
+Inspect:
+
+* how the current user claim count is tracked
+* whether a claim cooldown exists
+* whether the claim cooldown is being set
+* whether it is being checked
+* whether the claim command bypasses the check
+* whether the current roll remains claimable
+* whether a new roll is implicitly being selected
+* whether claim state is stored correctly
+* whether the existing cooldown service already supports claim cooldowns
+
+Do not modify the existing global character uniqueness system to solve this.
+
+---
+
+# 6. CLAIM AVAILABILITY MUST BE SEPARATE FROM CHARACTER OWNERSHIP
+
+There are two different concepts:
+
+### Character ownership
+
+```text
+Who owns this specific character?
+```
+
+The existing global uniqueness/claim transaction remains authoritative.
+
+### User claim availability
+
+```text
+Can this user perform another claim right now?
+```
+
+The current bug is related to the second concept.
+
+Do not conflate these.
+
+The fix must not weaken or bypass:
+
+* advisory locks
+* ownership checks
+* first-claim-wins behavior
+* expiration checks
+* verified-character checks
+* claim transaction safety
+
+---
+
+# 7. DETERMINE THE INTENDED CLAIM RULE FROM THE CURRENT ARCHITECTURE
+
+Use the existing repository behavior, documentation, configuration, and tests to determine what the intended claim restriction is.
+
+If the repository already has a claim cooldown mechanism, restore/fix that mechanism rather than inventing a second one.
+
+If the repository already has persistent claim availability state, use it.
+
+If the current architecture has an explicit claim cooldown constant/configuration that is simply not being enforced, fix the missing enforcement.
+
+Do **not** introduce an arbitrary cooldown duration without first inspecting the existing project.
+
+If there is genuinely no existing intended duration/state, report that finding rather than silently inventing a gameplay rule.
+
+The goal is to fix the current broken behavior while preserving the project's existing intended design.
+
+---
+
+# 8. EXPECTED CLAIM BEHAVIOR
+
+After a successful claim:
+
+```text
+/claim
+→ success
+```
+
+Immediately attempting another claim:
+
+```text
+/claim
+→ rejected
+```
+
+The response should clearly explain why the user cannot claim again yet, using the existing presentation conventions.
+
+The second attempt must not:
+
+* claim another character
+* consume another roll
+* create duplicate ownership
+* modify the previous claim
+* bypass global uniqueness
+
+When the intended claim availability condition expires/resets:
+
+```text
+/claim
+→ allowed again
+```
+
+---
+
+# 9. IMPORTANT: DO NOT BREAK ROLL INDEPENDENCE
+
+Fixing claim availability must **not** cause claiming to affect the roll pool.
+
+This must remain true:
+
+```text
+10 available
+↓
+/roll
+↓
+9 available
+↓
+/claim
+↓
+9 available
+```
+
+The claim operation must not:
+
+* consume another roll
+* restore a roll
+* reset the roll pool
+* start roll replenishment
+* alter roll availability
+
+After claiming, the user should still be able to `/roll` immediately if rolls remain.
+
+The only thing that changes is their ability to claim again.
+
+---
+
+# 10. DEVELOPER MODE
+
+Developer Mode is currently working correctly.
+
+Preserve it.
+
+Do not modify Developer Mode unless the claim fix exposes a direct dependency.
+
+Developer Mode must continue to:
+
+* bypass normal roll-pool availability
+* avoid consuming normal pool rolls
+* use normal verified character selection
+* create normal roll records
+* preserve expiration
+* preserve claim rules
+* preserve global character uniqueness
+
+Do not make Developer Mode bypass claim availability unless the existing project explicitly defines that behavior.
+
+---
+
+# 11. TESTS REQUIRED
+
+Inspect existing tests before modifying them.
+
+Add or update focused tests for both changes.
+
+## Roll pool
+
+Verify:
+
+```text
+new/configured pool
+→ 10 rolls
+```
+
+Verify:
+
+```text
+10
+→ 9
+→ 8
+→ 7
+→ 6
+→ 5
+→ 4
+→ 3
+→ 2
+→ 1
+→ 0
+```
+
+Verify replenishment restores:
+
+```text
+10
+```
+
+not 5.
+
+Verify existing partially consumed pools are not blindly reset merely because the configuration changed.
+
+---
+
+## Claim availability
+
+Mandatory test:
+
+```text
+roll
+→ claim
+→ immediate second claim
+→ rejected
+```
+
+Then verify the claim becomes available again according to the repository's intended claim-availability mechanism.
+
+---
+
+## Claim + roll independence
+
+Mandatory:
+
+```text
+10 available
+↓
+/roll
+↓
+9 available
+↓
+/claim
+↓
+9 available
+↓
+/roll
+↓
+8 available
+```
+
+---
+
+## Global uniqueness regression
+
+Verify existing first-claim-wins behavior remains intact.
+
+Two users must not be able to claim the same character.
+
+Do not weaken existing claim tests.
+
+---
+
+# 12. LIVE TESTING
+
+If Discord access is available, verify:
+
+### Roll pool
+
+```text
+/profile
+```
+
+shows:
+
+```text
+10 / 10
+```
+
+Perform consecutive rolls and verify the counter decreases without waiting.
+
+### Claim
+
+```text
+/roll
+/claim
+/claim
+```
+
+Expected:
+
+```text
+first /claim → succeeds
+second /claim → rejected
+```
+
+Then:
+
+```text
+/roll
+```
+
+must still work if normal rolls remain.
+
+### Developer Mode
+
+Verify existing Developer Mode behavior still works after the changes.
+
+---
+
+# 13. VALIDATION
+
+Run:
+
+```text
+pnpm run typecheck
+```
+
+```text
+pnpm --filter @workspace/api-server run test
+```
+
+```text
+pnpm --filter @workspace/api-server run build
+```
+
+Verify:
+
+```text
+GET /api/healthz
+```
+
+still returns:
+
+```json
+{"status":"ok"}
+```
+
+Run:
+
+```text
+git status --short
+```
+
+```text
+git diff --stat
+```
+
+Do not commit.
+
+---
+
+# 14. FINAL REPORT
+
+Report:
+
+## Roll Pool
+
+* New default pool size
+* Replenishment duration
+* How existing pool state was handled
+* How future replenishment uses 10
+* Profile display
+
+## Claim Fix
+
+* Root cause of immediate repeated claiming
+* Existing mechanism that was intended to prevent it
+* Exact code change made
+* Claim availability behavior after the fix
+* Whether a cooldown/state was already present or had to be added
+
+## Integrity
+
+Confirm:
+
+* claim does not affect roll count
+* roll does not bypass claim availability
+* global character uniqueness remains intact
+* existing claim transaction remains intact
+* Developer Mode remains intact
+
+## Validation
+
+Provide exact results for:
+
+* typecheck
+* tests
+* build
+* health endpoint
+* live Discord testing, if performed
+
+## Files Changed
+
+List every added and modified file.
+
+## Git
+
+Report:
+
+```text
+git status --short
+git diff --stat
+```
+
+Do not commit.
+
+---
+
+# FINAL AUTHORITY
+
+The desired result is:
+
+```text
+NORMAL USER
+
+10 available rolls
+
+/roll
+→ 9
+
+/roll
+→ 8
+
+...
+
+/roll
+→ 0
+
+WAIT FOR ROLL REPLENISHMENT
+
+↓
+
+10 available again
+```
+
+while claims behave independently:
+
+```text
+/roll
+→ character
+
+/claim
+→ success
+
+/claim immediately again
+→ rejected
+
+/roll
+→ still works if rolls remain
+```
+
+The existing global character uniqueness and claim transaction system remains authoritative.
+
+**Do not solve the claim bug by modifying character ownership.**
+
+First determine why the current `/claim` command permits immediate repeated claims, then fix that specific issue using the repository's existing architecture.
+
+Do not broaden the scope.
+
+Do not commit.

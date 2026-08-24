@@ -14,7 +14,7 @@ An actual Discord character-collection game with a verified-only catalog and per
 - Required secret: `DEVELOPER_USER_IDS` — comma-separated Discord IDs authorized to use `/developer`
 - `DATABASE_URL` is provided by the Replit database
 - Optional env: `DISCORD_CLIENT_ID` — application ID; if omitted, the bot resolves it from Discord
-- Optional env: `ROLL_POOL_SIZE` — normal user roll pool size; defaults to 5
+- Optional env: `ROLL_POOL_SIZE` — normal user roll pool size; defaults to 10
 - Optional env: `ROLL_REPLENISHMENT_MS` — replenishment delay after the pool reaches zero; defaults to 1 hour
 
 ## Stack

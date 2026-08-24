@@ -10,7 +10,7 @@ export class GameDatabase {
     economy;
     cooldowns;
     rollExpirationMs = Number(process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000);
-    rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 5);
+    rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 10);
     rollReplenishmentMs = Number(process.env.ROLL_REPLENISHMENT_MS ?? 60 * 60 * 1000);
     constructor(pool) {
         if (!pool && !process.env.DATABASE_URL) {

@@ -103,6 +103,14 @@ export const migrations: readonly Migration[] = [
         CHECK (available_rolls >= 0);
     `,
   },
+  {
+    id: "005",
+    name: "increase-roll-pool-default",
+    sql: `
+      ALTER TABLE mudae_users
+        ALTER COLUMN available_rolls SET DEFAULT 10;
+    `,
+  },
 ];
 
 export function pendingMigrations(

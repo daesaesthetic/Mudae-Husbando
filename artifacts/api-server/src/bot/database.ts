@@ -20,7 +20,7 @@ export class GameDatabase {
   private readonly rollExpirationMs = Number(
     process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000,
   );
-  private readonly rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 5);
+  private readonly rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 10);
   private readonly rollReplenishmentMs = Number(
     process.env.ROLL_REPLENISHMENT_MS ?? 60 * 60 * 1000,
   );

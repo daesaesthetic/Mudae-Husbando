@@ -7,7 +7,7 @@ type QueryResult = { rows: Record<string, unknown>[]; rowCount: number };
 
 class RollPool {
   user = {
-    available_rolls: 5,
+    available_rolls: 10,
     roll_replenishment_at: null as Date | null,
     rolls_used: 0,
   };
@@ -97,17 +97,17 @@ function databaseWithPool(pool = new RollPool()) {
 }
 
 describe("persistent roll pool", () => {
-  it("initializes at five rolls and consumes consecutive rolls before replenishment starts", async () => {
+  it("initializes at ten rolls and consumes consecutive rolls before replenishment starts", async () => {
     const { database, pool } = databaseWithPool();
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const result = await database.roll(`roll-${index}`, "player", null);
       assert.equal(result.status, "success");
-      if (result.status === "success") assert.equal(result.availableRolls, 4 - index);
-      if (index < 4) assert.equal(pool.user.roll_replenishment_at, null);
+      if (result.status === "success") assert.equal(result.availableRolls, 9 - index);
+      if (index < 9) assert.equal(pool.user.roll_replenishment_at, null);
     }
     assert.equal(pool.user.available_rolls, 0);
     assert.ok(pool.user.roll_replenishment_at instanceof Date);
-    assert.equal(pool.user.rolls_used, 5);
+    assert.equal(pool.user.rolls_used, 10);
   });
 
   it("rejects an exhausted pool until its persistent replenishment timestamp has passed", async () => {
@@ -121,8 +121,16 @@ describe("persistent roll pool", () => {
     pool.user.roll_replenishment_at = new Date(Date.now() - 1);
     const replenished = await database.roll("restored", "player", null);
     assert.equal(replenished.status, "success");
-    assert.equal(pool.user.available_rolls, 4);
+    assert.equal(pool.user.available_rolls, 9);
     assert.equal(pool.user.roll_replenishment_at, null);
+  });
+
+  it("preserves an existing partially consumed pool when the configured maximum changes", async () => {
+    const { database, pool } = databaseWithPool();
+    pool.user.available_rolls = 7;
+    const result = await database.roll("partial", "player", null);
+    assert.equal(result.status, "success");
+    assert.equal(pool.user.available_rolls, 6);
   });
 
   it("allows only one concurrent consumption when one roll remains", async () => {
@@ -146,6 +154,7 @@ describe("persistent roll pool", () => {
       status: "success",
       characterId: 1,
     });
+    assert.equal(await database.claimRoll("claimable", "claimer"), "claimed");
     assert.equal(pool.user.available_rolls, 4);
   });
 
