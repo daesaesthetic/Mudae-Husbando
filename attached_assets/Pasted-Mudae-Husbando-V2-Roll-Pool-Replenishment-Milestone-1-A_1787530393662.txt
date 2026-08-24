@@ -1,0 +1,750 @@
+Mudae Husbando V2 — Roll Pool & Replenishment — Milestone 1
+AUTHORITATIVE REPLIT AGENT IMPLEMENTATION PROMPT
+
+You are a new Replit Agent working directly on the existing Mudae Husbando V2 repository.
+
+The repository you have been given is the authoritative source of truth.
+
+Do not assume previous agent sessions, previous uncommitted work, or previous milestone implementations exist.
+
+This task must be implemented from the current repository state.
+
+Before changing anything, inspect the actual project structure, source code, database schema, migrations, tests, Discord command handling, roll implementation, claim implementation, and Developer Mode implementation.
+
+Do not reconstruct architecture from milestone documents when the source code provides the actual answer.
+
+OBJECTIVE
+
+Implement a persistent roll-pool and replenishment system for /roll, replacing the current per-roll cooldown behavior.
+
+The intended gameplay model is similar to Mudae's Waifu-style roll availability:
+
+Normal User
+───────────
+
+5 available rolls
+
+/roll
+→ 4 remaining
+
+/roll
+→ 3 remaining
+
+/roll
+→ 2 remaining
+
+/roll
+→ 1 remaining
+
+/roll
+→ 0 remaining
+
+WAIT FOR REPLENISHMENT
+
+↓
+5 rolls available again
+
+The user must be able to consume their available rolls consecutively without waiting between individual rolls.
+
+A replenishment cooldown begins only after the pool reaches zero.
+
+1. PRESERVE THE EXISTING GAME
+
+This is a focused milestone.
+
+Do not rewrite the existing Mudae architecture.
+
+The current repository already contains functioning systems for:
+
+/roll
+/claim
+Claim Character
+verified-character selection
+persistent rolls
+roll expiration
+character cards
+global character uniqueness
+first-claim-wins claim transactions
+/collection
+collection pagination
+/profile
+/search
+/favorite
+/wishlist
+/developer
+PostgreSQL persistence
+database migrations
+existing tests
+
+Preserve all of them.
+
+Do not introduce:
+
+SQLite
+a second database
+an ORM migration
+a second roll engine
+a second cooldown framework
+AI
+trading
+marketplace systems
+character scraping
+Mudae API integration
+unrelated refactoring
+
+Make the smallest coherent changes necessary.
+
+2. INSPECT BEFORE IMPLEMENTING
+
+Before editing, inspect and understand:
+
+Roll path
+
+Determine:
+
+where /roll is handled
+how a user is currently checked for roll availability
+where the current cooldown is stored
+where rolls_used is updated
+how the character is selected
+how the roll record is created
+Database
+
+Determine:
+
+the authoritative user table
+current user fields
+current cooldown fields
+migration mechanism
+existing transaction patterns
+Claims
+
+Inspect but do not redesign:
+
+GameDatabase.claimRoll()
+claim transactions
+advisory locks
+global character uniqueness
+
+These must remain intact.
+
+Developer Mode
+
+Determine:
+
+how authorized developers are identified
+how Developer Mode is toggled
+how Developer Mode currently bypasses normal roll restrictions
+
+Developer Mode will be integrated after the normal pool is correct.
+
+Tests
+
+Inspect all existing roll, cooldown, claim, developer, and database tests before adding new coverage.
+
+3. REPLACE PER-ROLL COOLDOWN BEHAVIOR
+
+The current system uses a cooldown that prevents a user from immediately rolling again.
+
+That behavior must be replaced for normal users.
+
+The desired behavior is:
+
+/roll
+↓
+success
+↓
+/roll immediately
+↓
+success
+
+provided the user still has available rolls.
+
+There must be no cooldown between individual rolls.
+
+The cooldown applies only after the user has exhausted the entire pool.
+
+4. ROLL POOL
+
+Implement a persistent pool for each user.
+
+The conceptual state is:
+
+available_rolls
+roll_replenishment_at
+
+Use names consistent with the actual repository.
+
+Do not repurpose:
+
+rolls_used
+
+rolls_used is a lifetime statistic.
+
+The current roll pool is separate state.
+
+5. CONFIGURATION
+
+Add configuration through the existing environment/configuration conventions:
+
+ROLL_POOL_SIZE
+
+Default:
+
+5
+
+and:
+
+ROLL_REPLENISHMENT_MS
+
+Default:
+
+1 hour
+
+Do not hard-code these values directly inside /roll.
+
+The implementation must remain configurable for future balancing.
+
+6. INITIALIZATION
+
+Existing and new users must receive a valid initial pool.
+
+A new user should effectively begin with:
+
+5 available rolls
+
+Existing users must not lose their existing gameplay data.
+
+Do not reset:
+
+claims
+collections
+characters
+favorites
+wishlists
+lifetime roll statistics
+economy data
+
+If a migration is necessary, make it additive and deterministic.
+
+7. NORMAL ROLL CONSUMPTION
+
+Each successful normal /roll consumes exactly one available roll.
+
+Example:
+
+5
+↓
+/roll
+↓
+4
+
+Then:
+
+4
+↓
+/roll
+↓
+3
+
+Continue until zero.
+
+The roll operation must remain transactional.
+
+At minimum, the successful operation must ensure that:
+
+Availability is checked atomically.
+One roll is consumed.
+The lifetime roll statistic is incremented.
+The persistent roll record is created.
+The selected character still comes from the existing verified-character roll system.
+
+Do not create a roll record if the user did not successfully consume a roll.
+
+8. ATOMIC CONSUMPTION
+
+Concurrent requests must be safe.
+
+If the user has:
+
+available_rolls = 1
+
+and two /roll requests happen simultaneously:
+
+Request A ─┐
+           ├── same user
+Request B ─┘
+
+the result must be:
+
+Exactly one succeeds.
+Exactly one is rejected.
+available_rolls never becomes negative.
+
+Use the existing PostgreSQL transaction/locking patterns.
+
+Do not solve this with an in-memory lock.
+
+The database must remain authoritative.
+
+9. EXHAUSTION
+
+When:
+
+available_rolls = 0
+
+normal /roll must stop succeeding.
+
+The response should clearly communicate that the user's rolls are exhausted and that replenishment is pending.
+
+Do not continue using the old misleading per-roll cooldown message:
+
+You can roll again after the current roll cooldown expires.
+
+The user has not merely triggered a cooldown after one roll.
+
+They have exhausted their current pool.
+
+Use the existing Discord presentation conventions.
+
+10. START REPLENISHMENT ONLY AT ZERO
+
+This is critical.
+
+Correct:
+
+5
+↓
+4
+↓
+3
+↓
+2
+↓
+1
+↓
+0
+↓
+START REPLENISHMENT TIMER
+
+Incorrect:
+
+5
+↓
+/roll
+↓
+START TIMER
+
+The replenishment timestamp must only become active when the pool reaches zero.
+
+If the user has:
+
+3 available rolls
+
+there should be no replenishment cooldown running.
+
+11. PERSISTENT REPLENISHMENT
+
+The replenishment state must survive:
+
+bot restart
+Replit workflow restart
+process restart
+Discord reconnect
+
+Do not rely on:
+
+setTimeout()
+setInterval()
+
+as the source of truth.
+
+The database timestamp is authoritative.
+
+When the stored replenishment time has passed, the next relevant roll request may restore the pool.
+
+Conceptually:
+
+0 rolls
++
+replenishment_at = 18:00
++
+current time = 18:01
+
+↓
+pool restored
+
+5 rolls
+
+The implementation does not need a continuously running background timer merely to restore a user's pool.
+
+Lazy restoration on interaction is acceptable and preferable if consistent with the current architecture.
+
+12. CLAIMING MUST NOT AFFECT THE POOL
+
+This is mandatory.
+
+Example:
+
+5 available
+↓
+/roll
+↓
+4 available
+↓
+claim character
+↓
+4 available
+↓
+/roll
+↓
+3 available
+
+Claiming a character must NOT:
+
+consume an additional roll
+restore a roll
+reset the pool
+start replenishment
+trigger a per-roll cooldown
+prevent the user from rolling again
+
+Do not modify claim behavior as part of this milestone.
+
+13. GLOBAL CHARACTER UNIQUENESS MUST REMAIN INTACT
+
+The repository already has a global character uniqueness system.
+
+Preserve it exactly.
+
+The rule is:
+
+There is only one globally claimable copy of each character. The first successful claimant owns it.
+
+The roll pool must have no authority over character ownership.
+
+Do not:
+
+remove advisory locking
+remove ownership checks
+create duplicate ownership
+change claim transactions
+make Developer Mode bypass ownership
+use roll-pool state to determine ownership
+
+Roll availability and character ownership are separate systems.
+
+14. DEVELOPER MODE INTEGRATION
+
+Developer Mode already exists.
+
+After implementing the normal pool, integrate Developer Mode so that an authorized developer can perform unlimited development rolls.
+
+When Developer Mode is OFF:
+
+normal pool applies
+
+When Developer Mode is ON:
+
+roll pool does not restrict the developer
+
+Developer Mode should bypass only the availability restriction.
+
+Conceptually:
+
+Normal:
+consume available roll
+
+Developer:
+do not consume normal pool
+
+Do not create a separate development roll engine.
+
+15. DEVELOPER MODE MUST NOT BYPASS GAMEPLAY RULES
+
+Developer Mode does NOT mean unrestricted gameplay.
+
+Developer rolls must still use:
+
+the existing verified-character selector
+the existing roll record system
+the existing expiration system
+the existing claim system
+the existing global character uniqueness
+the existing claim transaction
+
+The only special behavior is:
+
+The developer does not run out of normal roll-pool availability.
+
+This distinction is mandatory.
+
+16. PROFILE
+
+If the existing /profile implementation makes this straightforward, expose current roll availability.
+
+Prefer something equivalent to:
+
+Rolls Available: 4 / 5
+
+When exhausted:
+
+Rolls Available: 0 / 5
+Replenishes in: 42m
+
+Do not redesign /profile.
+
+This is secondary to the actual roll-pool functionality.
+
+17. DATABASE MIGRATION
+
+If the current schema requires new fields, create an additive PostgreSQL migration.
+
+Likely state:
+
+available_rolls
+roll_replenishment_at
+
+Use the repository's actual naming and migration conventions.
+
+Do not:
+
+recreate tables
+reset the database
+delete existing migrations
+modify historical ownership
+modify historical claims
+modify rolls_used
+
+Existing users must receive deterministic initial values.
+
+18. TESTS REQUIRED
+
+Add focused automated coverage.
+
+Pool initialization
+new user
+→ pool initialized to 5
+Consecutive rolls
+5
+→ 4
+→ 3
+→ 2
+→ 1
+→ 0
+Claim independence
+roll
+→ consume one
+→ claim
+→ pool remains unchanged
+→ another roll succeeds
+
+This test is mandatory.
+
+Exhaustion
+0 rolls
+→ normal roll rejected
+Replenishment
+
+Test both:
+
+0 + active replenishment timestamp
+→ still unavailable
+
+and:
+
+0 + expired replenishment timestamp
+→ pool restored to 5
+Persistence
+
+Verify that pool state is represented by persistent database state rather than memory.
+
+Concurrent consumption
+
+With one available roll:
+
+two simultaneous requests
+→ exactly one succeeds
+→ exactly one fails
+Developer Mode
+Developer ON
+→ repeated rolls remain available
+
+and:
+
+Developer OFF
+→ normal pool restrictions apply
+Regression protection
+
+Verify existing claim/uniqueness tests still pass.
+
+19. DO NOT WEAKEN EXISTING TESTS
+
+If existing tests fail because the new roll-pool behavior legitimately changes an old cooldown expectation, update the expectation to reflect the new specification.
+
+If tests fail because:
+
+claims duplicate
+uniqueness breaks
+transactions become unsafe
+Developer Mode leaks state
+ownership changes
+
+then fix the implementation.
+
+Do not weaken tests simply to obtain a passing suite.
+
+20. VALIDATION
+
+After implementation, run:
+
+pnpm install --frozen-lockfile
+
+if dependencies are missing.
+
+Then:
+
+pnpm run typecheck
+pnpm --filter @workspace/api-server run test
+pnpm --filter @workspace/api-server run build
+
+Verify:
+
+GET /api/healthz
+
+returns:
+
+{"status":"ok"}
+
+If Discord credentials are available, run the workflow and perform live testing.
+
+21. REQUIRED LIVE TEST
+Normal user
+
+Perform:
+
+/profile
+
+/roll
+
+Verify one roll is consumed.
+
+Then immediately:
+
+/roll
+/roll
+/roll
+/roll
+
+Verify all remaining rolls can be consumed without waiting.
+
+Then attempt one additional roll.
+
+Verify the user receives the exhaustion/replenishment response.
+
+Claim independence
+
+After rolling:
+
+/claim
+
+Then immediately:
+
+/roll
+
+The next roll must work if rolls remain.
+
+Developer Mode
+
+Toggle:
+
+/developer
+
+ON.
+
+Perform more than five rolls.
+
+All should remain available.
+
+Toggle:
+
+/developer
+
+OFF.
+
+Normal roll-pool restrictions must immediately apply.
+
+Character uniqueness
+
+Do not alter the existing uniqueness behavior.
+
+Verify that a successfully claimed character cannot subsequently be claimed by another user.
+
+22. FINAL REPORT
+
+When complete, report:
+
+Roll Pool
+Pool size
+Replenishment duration
+Consumption behavior
+Exhaustion behavior
+Persistence behavior
+Concurrent-roll behavior
+Developer Mode
+ON behavior
+OFF behavior
+Pool bypass behavior
+Gameplay restrictions preserved
+Claim Integrity
+Claiming another user's roll still works
+Existing claim transaction preserved
+Global uniqueness preserved
+Duplicate claim protection status
+Validation
+
+Provide exact results for:
+
+typecheck
+tests
+build
+health endpoint
+live Discord testing
+Files Changed
+
+List every added and modified file.
+
+Database
+
+List every migration/schema change.
+
+Git
+
+Run:
+
+git status
+git diff --stat
+
+Report the results.
+
+23. DO NOT COMMIT
+
+Do not create a Git commit.
+
+Leave the repository in a cleanly reviewable working state.
+
+We will inspect and manually test this milestone before committing it.
+
+FINAL AUTHORITY
+
+The required gameplay model is:
+
+Normal users receive a finite pool of five rolls. They can use those rolls consecutively without waiting between individual rolls. Claiming a character does not consume or reset rolls. Once the pool reaches zero, a replenishment cooldown begins. When the cooldown expires, the pool is restored. Developer Mode bypasses only the roll-pool availability restriction. Existing claim transactions and global character uniqueness remain authoritative for everyone.
+
+Implement this milestone from the actual current repository state, not from historical assumptions.
+
+Do not broaden the scope.
+
+Do not commit.
+
+First implement, then validate, then report exactly what was changed and what was verified.
