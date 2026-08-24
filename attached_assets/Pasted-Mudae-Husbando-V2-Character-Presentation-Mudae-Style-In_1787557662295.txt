@@ -1,0 +1,795 @@
+Mudae Husbando V2 — Character Presentation & Mudae-Style Interaction Layer
+MASTER IMPLEMENTATION PROMPT
+
+Continue working on the existing Mudae Husbando V2 repository and the architecture you have already been building.
+
+This is the next milestone after the completed persistent Roll Pool + Claim Pool implementation.
+
+You already know the project's existing architecture from the previous milestones, but the actual repository remains the final authority. Before changing anything, briefly verify the relevant current implementation rather than rebuilding systems that already exist.
+
+The goal of this milestone is to move the bot from a functional gameplay foundation into a much more recognizable Mudae-style Discord experience by introducing:
+
+Character artwork/images
+Character embeds/cards
+/ha
+/wa
+$-style keyword/prefix commands
+Shared slash-command and prefix-command routing
+A reusable presentation layer for character results
+
+Everything must build on the systems that already exist.
+
+1. DO NOT REBUILD THE EXISTING GAME
+
+The current implementation already has working:
+
+verified-character foundation
+character schema
+curated verified character catalog
+PostgreSQL persistence
+migrations
+/roll
+/claim
+/collection
+/profile
+/search
+/favorite
+/wishlist
+Developer Mode
+persistent roll pool
+10-roll default pool
+persistent claim pool
+1-claim default pool
+roll replenishment
+claim replenishment
+atomic roll consumption
+atomic claim consumption
+concurrent-request protection
+persistent roll records
+expiration
+first-claim-wins behavior
+global character uniqueness
+advisory locking
+existing tests
+
+Do not replace, duplicate, or redesign these systems.
+
+This milestone is primarily about presentation and interaction, not gameplay-engine replacement.
+
+2. THE CORE ARCHITECTURE SHOULD BECOME
+
+The intended architecture is:
+
+Slash command ───┐
+                 ├──→ Shared command/gameplay logic
+Prefix command ──┘
+                         ↓
+                  Existing roll/claim systems
+                         ↓
+                    Character result
+                         ↓
+                Character presentation
+                         ↓
+                    Discord Embed
+
+For example:
+
+/ha
+
+and:
+
+$ha
+
+must ultimately use the same underlying roll behavior.
+
+Likewise:
+
+/claim
+
+and:
+
+$claim
+
+should use the same claim system where the prefix equivalent is supported.
+
+Do not create separate slash and prefix gameplay implementations.
+
+3. CHARACTER ARTWORK
+
+Introduce persistent artwork for the existing verified characters.
+
+First inspect the actual current character schema and seed catalog.
+
+Use the existing character architecture rather than creating a parallel character-image table unless the current schema genuinely requires one.
+
+At minimum, characters need an image reference such as:
+
+image_url
+
+Use the repository's existing naming conventions.
+
+Do not store image binaries in PostgreSQL.
+
+The database should store the reference/URL.
+
+4. EXISTING CHARACTER CATALOG
+
+Populate artwork for the characters that actually exist in the current verified catalog/database.
+
+Do not:
+
+replace the catalog
+invent additional characters
+create a second catalog
+randomly associate images with characters
+scrape arbitrary websites
+build an image scraper
+
+Each image should correspond to the exact character.
+
+If an image cannot safely be assigned, use the presentation fallback instead of assigning an incorrect image.
+
+The bot must continue working even if an individual character has no image.
+
+5. CHARACTER CARD / EMBED SYSTEM
+
+Create a centralized character presentation system.
+
+Do not construct completely separate embeds inside every command.
+
+Use an appropriate reusable abstraction based on the current project structure, such as:
+
+createCharacterEmbed(...)
+
+or an equivalent presentation service/helper.
+
+The character card should be capable of presenting:
+
+character name
+series
+character artwork
+claim status/availability where relevant
+roll information where relevant
+expiration where relevant
+user/roller information where relevant
+
+The exact visual design is up to you, but it should feel polished and clearly distinguish this bot from a plain-text prototype.
+
+Do not attempt to copy Mudae's exact proprietary presentation.
+
+Create an original Mudae-inspired character-card experience.
+
+6. /roll SHOULD USE THE NEW CARD
+
+Keep /roll itself intact as a gameplay system.
+
+Only change its presentation so that a successful roll produces the new character card/embed.
+
+The existing roll engine must continue deciding:
+
+whether the user can roll
+pool consumption
+character selection
+roll persistence
+expiration
+Developer Mode behavior
+
+The new presentation layer should simply receive the resulting character/roll data and render it.
+
+Example conceptual result:
+
+┌─────────────────────────────┐
+│ Character Name              │
+│ Series                      │
+│                             │
+│       CHARACTER ART         │
+│                             │
+│ 🎴 Roll information         │
+│ ❤️ Claim availability       │
+│ ⏳ Expiration               │
+└─────────────────────────────┘
+
+Do not change the existing roll rules while doing this.
+
+7. /ha
+
+Add:
+
+/ha
+
+This should be the Mudae-style husbando roll command.
+
+It must use the existing roll engine.
+
+Conceptually:
+
+/ha
+ ↓
+existing roll availability
+ ↓
+husbando category/filter
+ ↓
+existing verified character selection
+ ↓
+existing roll persistence
+ ↓
+character card
+
+A /ha roll consumes the same normal roll pool as /roll.
+
+There must NOT be:
+
+ha_rolls
+
+or a second roll pool.
+
+Developer Mode should interact with /ha exactly as it does with /roll.
+
+8. /wa
+
+Add:
+
+/wa
+
+for waifu rolls if the existing character data supports a reliable distinction.
+
+Before implementing the filter, inspect the actual character data.
+
+If the current schema does not contain sufficient classification data, add the smallest appropriate verified metadata field needed to support the distinction.
+
+Do not infer character category from names or other unreliable heuristics.
+
+If a category field is needed, populate it deterministically for the existing catalog.
+
+/wa must use:
+
+existing roll pool
+existing verified-character selection
+existing persistent roll records
+existing expiration
+existing Developer Mode
+existing claim/ownership rules
+
+Do not create a second roll engine.
+
+9. /roll REMAINS
+
+Do not remove /roll.
+
+It remains the generic roll command.
+
+The relationship should be:
+
+/roll → general eligible character roll
+/ha   → husbando-filtered roll
+/wa   → waifu-filtered roll
+
+provided those categories are actually supported by the data model.
+
+10. $ PREFIX SYSTEM
+
+Introduce a configurable message-command prefix.
+
+Default:
+
+$
+
+Configuration:
+
+BOT_PREFIX
+
+Default value:
+
+$
+
+Do not hard-code $ throughout the project.
+
+The parser should use the configured prefix.
+
+11. PREFIX COMMAND PARSER
+
+Create a centralized parser for messages such as:
+
+$ha
+$wa
+$roll
+$claim
+$search Goku
+
+Conceptually:
+
+$search Goku
+
+becomes:
+
+prefix = $
+command = search
+arguments = ["Goku"]
+
+The parser should correctly handle:
+
+configured prefix
+command names
+arguments
+extra whitespace
+case normalization where appropriate
+unknown commands
+empty messages
+malformed input
+
+Unknown prefixed messages should be safely ignored or receive a concise unknown-command response according to the project's presentation conventions.
+
+12. PREFIX COMMANDS
+
+At minimum support:
+
+$ha
+$wa
+
+Also add prefix equivalents for the existing commands where the current architecture makes this straightforward:
+
+$roll
+$claim
+$profile
+$collection
+$search
+$favorite
+$wishlist
+
+The exact set should be based on the actual current command architecture.
+
+Do not force a prefix version of something that fundamentally depends on Discord's interaction system.
+
+13. SHARED ROUTING
+
+This is critical.
+
+For example:
+
+/ha
+
+and:
+
+$ha
+
+must eventually reach the same underlying command/gameplay implementation.
+
+Likewise:
+
+/claim
+
+and:
+
+$claim
+
+must use the same claim pool and claim transaction.
+
+Do not duplicate:
+
+roll database operations
+claim database operations
+pool management
+character selection
+ownership checks
+Developer Mode logic
+
+The input method changes.
+
+The gameplay does not.
+
+14. DISCORD MESSAGE HANDLING
+
+Inspect the current Discord client configuration.
+
+Prefix commands require message-based event handling.
+
+Determine the minimum required Discord intent for receiving the necessary messages.
+
+Only enable what is actually needed.
+
+Do not indiscriminately enable every privileged intent.
+
+Prefix handling must:
+
+ignore bot messages
+respect the configured prefix
+parse commands safely
+route recognized commands
+avoid processing ordinary unprefixed messages
+avoid command loops
+avoid leaking database errors
+preserve existing slash-command functionality
+15. CLAIM PRESENTATION
+
+Update /claim to use the new character presentation system where appropriate.
+
+Do not alter the claim gameplay rules.
+
+A successful claim can show:
+
+character name
+series
+artwork
+claimant
+relevant status
+
+A failed claim should continue communicating the actual reason clearly.
+
+The existing claim pool and ownership rules remain authoritative.
+
+In particular:
+
+claim
+→ consumes one claim
+
+but:
+
+failed claim
+→ consumes nothing
+16. PROFILE
+
+Preserve the existing profile system.
+
+It should continue showing:
+
+Rolls Available: X / 10
+Claims Available: X / 1
+
+with replenishment information when appropriate.
+
+If prefix support is added:
+
+$profile
+
+must invoke the same profile logic as:
+
+/profile
+
+Do not redesign the profile system unnecessarily.
+
+17. OTHER CHARACTER PRESENTATION
+
+If the centralized character-card system can be integrated cleanly, reuse it in:
+
+/search
+/collection
+/favorite
+/wishlist
+
+Prioritize:
+
+/roll
+/ha
+/wa
+/claim
+
+Then extend to the others only if doing so remains a small, coherent change.
+
+Do not turn this milestone into a complete UI rewrite.
+
+18. BUTTONS
+
+Do not build a large button/component interaction system yet.
+
+However, structure the character-card implementation so future controls can be added cleanly, such as:
+
+[ Claim ]
+[ Favorite ]
+[ Wishlist ]
+
+For now, focus on:
+
+artwork
+embed
+character information
+consistent presentation
+19. DATABASE / MIGRATIONS
+
+If schema changes are necessary:
+
+use the existing PostgreSQL migration mechanism
+make additive migrations
+preserve all existing data
+preserve all historical claims
+preserve all historical rolls
+preserve lifetime statistics
+preserve collections
+preserve favorites
+preserve wishlists
+preserve economy data
+
+Do not:
+
+introduce SQLite
+introduce an ORM
+recreate tables
+reset the database
+modify historical migrations
+create a second database
+
+If existing metadata can be extended without a migration, prefer the existing architecture.
+
+20. TESTING
+
+Inspect the existing tests first.
+
+Do not weaken existing tests.
+
+Add focused tests for:
+
+Character presentation
+embed generation
+character name
+series
+image URL
+missing-image fallback
+/ha
+valid husbando selection
+uses existing roll pool
+creates normal roll record
+respects Developer Mode
+respects existing character rules
+/wa
+valid waifu selection if supported
+uses existing roll pool
+creates normal roll record
+Prefix parsing
+
+Test:
+
+$ha
+$wa
+$roll
+$claim
+$search Goku
+
+including:
+
+default prefix
+configurable prefix
+whitespace
+arguments
+unknown commands
+bot messages
+Shared behavior
+
+Verify:
+
+/ha
+
+and:
+
+$ha
+
+consume the same roll resource.
+
+Likewise verify:
+
+/claim
+
+and:
+
+$claim
+
+use the same claim availability.
+
+Regression
+
+All existing roll-pool, claim-pool, uniqueness, claim, Developer Mode, foundation, and database tests must continue passing.
+
+21. LIVE DISCORD TESTING
+
+If the current environment permits live testing, test:
+
+Roll card
+/roll
+
+Verify:
+
+embed appears
+correct character name
+correct series
+correct artwork
+roll availability decreases
+expiration remains correct
+Husbando
+/ha
+
+Verify it produces an eligible husbando and consumes one normal roll.
+
+Waifu
+/wa
+
+if supported.
+
+Prefix
+$ha
+$wa
+$roll
+$claim
+$profile
+$search <character>
+
+Test the commands that were actually implemented.
+
+Claim
+
+Roll, then:
+
+/claim
+
+and immediately attempt another claim.
+
+Verify the existing claim-pool restriction remains intact.
+
+Developer Mode
+
+Enable Developer Mode and verify:
+
+/ha
+$ha
+
+can continue beyond the normal roll pool.
+
+Then disable Developer Mode and verify normal roll restrictions immediately apply.
+
+22. VALIDATION
+
+Run:
+
+pnpm run typecheck
+pnpm --filter @workspace/api-server run test
+pnpm --filter @workspace/api-server run build
+
+Verify:
+
+GET /api/healthz
+
+returns:
+
+{"status":"ok"}
+
+Verify the Discord bot starts and connects successfully.
+
+If dependencies are missing, use:
+
+pnpm install --frozen-lockfile
+
+Do not unnecessarily reinstall dependencies if they are already present and correct.
+
+23. WORKFLOW SAFETY
+
+The current workflow configuration is already functioning.
+
+Do not restructure workflows unless inspection proves a change is required for this milestone.
+
+In particular:
+
+do not create duplicate API workflows
+do not create duplicate Discord bot processes
+do not remove a working workflow without a concrete reason
+do not change ports unnecessarily
+
+If workflow changes are required, report them explicitly.
+
+24. GIT
+
+Do not create a Git commit.
+
+At the end run:
+
+git status --short
+git diff --stat
+git diff --check
+
+Leave all implementation changes available for review.
+
+25. FINAL REPORT
+
+Report:
+
+Character Presentation
+image implementation
+image coverage of the existing catalog
+image fallback
+embed/card implementation
+Commands
+/roll
+/ha
+/wa
+prefix commands implemented
+shared routing architecture
+Prefix
+default prefix
+configuration variable
+parser
+Discord intents
+message handling
+Gameplay Integrity
+
+Confirm that:
+
+10-roll pool remains intact
+1-claim pool remains intact
+roll replenishment remains intact
+claim replenishment remains intact
+claims do not affect rolls
+rolls do not affect claims
+Developer Mode only bypasses roll availability
+global uniqueness remains intact
+first-claim-wins remains intact
+verified-character restrictions remain intact
+expiration remains intact
+Database
+
+List every migration/schema/seed-data change.
+
+Tests
+
+Report exact results for:
+
+typecheck
+tests
+build
+health endpoint
+Discord startup
+live Discord testing
+Files
+
+List every added and modified file.
+
+Git
+
+Report:
+
+git status --short
+git diff --stat
+git diff --check
+
+Confirm:
+
+No Git commit was created.
+
+FINAL DIRECTION
+
+This milestone should make Mudae Husbando V2 feel like a Discord character bot, not just expose more backend functionality.
+
+The desired experience is:
+
+/ha
+
+or:
+
+$ha
+
+↓
+
+Character card
+
+↓
+
+Character artwork
+
+↓
+
+Character name + series
+
+↓
+
+Roll/claim information
+
+while the exact same persistent roll, claim, ownership, expiration, and Developer Mode systems continue operating underneath.
+
+The most important architectural principle is:
+
+New interaction methods must sit on top of the existing gameplay systems. They must not replace or duplicate them.
+
+Build the presentation and interaction layer around what is already working.
+
+Inspect → extend → test → validate.
+
+Do not rebuild working systems.
+
+Do not broaden the milestone into trading, marketplace, AI, scraping, economy expansion, or other future functionality.
+
+Do not commit.
