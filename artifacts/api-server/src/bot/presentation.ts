@@ -7,6 +7,9 @@ export type RollCardData = {
   characterId: number;
   name: string;
   series: string;
+  mediaType?: string;
+  gender?: string;
+  imageUrl?: string | null;
   rarity: string;
   value: number;
   description: string;
@@ -23,6 +26,8 @@ export function characterCard(roll: RollCardData) {
       { name: "Value", value: `${roll.value}`, inline: true },
     )
     .setFooter({ text: "Verified catalog • Claim before this roll expires" });
+  if (roll.imageUrl) embed.setImage(roll.imageUrl);
+  else embed.addFields({ name: "Artwork", value: "Artwork coming soon", inline: true });
   const button = new ButtonBuilder()
     .setCustomId(`claim:${roll.id}`)
     .setLabel("Claim Character")

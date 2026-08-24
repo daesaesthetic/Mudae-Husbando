@@ -118,6 +118,7 @@ export class GameDatabase {
     discordId: string,
     guildId: string | null,
     developerMode = false,
+    gender?: "male" | "female",
   ) {
     const expiresAt = new Date(Date.now() + this.rollExpirationMs);
     const client = await this.pool.connect();
@@ -164,17 +165,23 @@ export class GameDatabase {
         id: number;
         name: string;
         series: string;
+        media_type: string;
+        gender: string;
+        image_url: string | null;
         rarity: string;
         value: number;
         description: string;
       }>(
-        `SELECT c.id, c.name, c.series, c.rarity, c.value, c.description
+        `SELECT c.id, c.name, c.series, c.media_type, c.gender, c.image_url,
+                c.rarity, c.value, c.description
          FROM mudae_characters c
          WHERE c.status = 'verified'
+           AND ($1::text IS NULL OR c.gender = $1)
            AND NOT EXISTS (
              SELECT 1 FROM mudae_collections o WHERE o.character_id = c.id
            )
          ORDER BY RANDOM() LIMIT 1`,
+        [gender ?? null],
       );
       if (!characterResult.rowCount) {
         await client.query("ROLLBACK");
@@ -344,7 +351,9 @@ export class GameDatabase {
 
   async getCharacter(id: number) {
     const result = await this.pool.query(
-      `SELECT id, name, series, rarity, value, description FROM mudae_characters WHERE id = $1 AND status = 'verified'`,
+      `SELECT id, name, series, media_type AS "mediaType", gender, image_url AS "imageUrl",
+              rarity, value, description
+       FROM mudae_characters WHERE id = $1 AND status = 'verified'`,
       [id],
     );
     return result.rows[0] as
@@ -352,6 +361,9 @@ export class GameDatabase {
           id: number;
           name: string;
           series: string;
+           mediaType: string;
+           gender: string;
+           imageUrl: string | null;
           rarity: string;
           value: number;
           description: string;
@@ -362,7 +374,8 @@ export class GameDatabase {
   async getRoll(rollId: string, discordId?: string) {
     const result = await this.pool.query(
       `SELECT r.id, r.discord_id AS "discordId", r.character_id AS "characterId", r.expires_at AS "expiresAt",
-              r.claimed_by AS "claimedBy", c.name, c.series, c.rarity, c.value, c.description
+              r.claimed_by AS "claimedBy", c.name, c.series, c.media_type AS "mediaType",
+              c.gender, c.image_url AS "imageUrl", c.rarity, c.value, c.description
        FROM mudae_rolls r JOIN mudae_characters c ON c.id = r.character_id
        WHERE r.id = $1 AND ($2::text IS NULL OR r.discord_id = $2)`,
       [rollId, discordId ?? null],
@@ -376,6 +389,9 @@ export class GameDatabase {
           claimedBy: string | null;
           name: string;
           series: string;
+          mediaType: string;
+          gender: string;
+          imageUrl: string | null;
           rarity: string;
           value: number;
           description: string;
