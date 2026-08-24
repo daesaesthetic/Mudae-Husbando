@@ -33,7 +33,7 @@ describe("character presentation", () => {
 
   it("keeps the curated Mudae artwork and canonical-name aliases attached to the catalog", () => {
     assert.equal(seedCharacters.length, 12);
-    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 11);
+    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 12);
     assert.deepEqual(
       seedCharacters.find((character) => character.name === "Levi Ackerman")?.aliases,
       ["Levi"],
@@ -42,9 +42,9 @@ describe("character presentation", () => {
       seedCharacters.find((character) => character.name === "Eren Yeager")?.aliases,
       ["Eren Jaeger"],
     );
-    assert.equal(
-      seedCharacters.find((character) => character.name === "Kirby")?.imageUrl,
-      null,
+    assert.match(
+      seedCharacters.find((character) => character.name === "Kirby")?.imageUrl ?? "",
+      /^https:\/\/mudae\.net\/uploads\/7502166\//,
     );
   });
 

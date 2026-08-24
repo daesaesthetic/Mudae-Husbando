@@ -1,6 +1,6 @@
 // Curated from the matching public character records on mudae.net.
-// Kirby intentionally remains unset because its Mudae record is under
-// "Kirby's Dream Land", not the catalog's "Kirby" series.
+// The catalog's "Kirby" series is the broader franchise label for Mudae's
+// exact Kirby record, whose primary series association is "Kirby's Dream Land".
 const mudaeArtworkByName = {
     "Satoru Gojo": "https://mudae.net/uploads/7115130/Z-sFr0e~ZpxD0dS.png",
     "Yuji Itadori": "https://mudae.net/uploads/5073912/mFx9Qrn~S9z6kYs.png",
@@ -13,6 +13,7 @@ const mudaeArtworkByName = {
     "Eren Yeager": "https://mudae.net/uploads/3014040/xbBFl3m~uzW2IBY.png",
     Makima: "https://mudae.net/uploads/6905958/ep4kmYu~w7w6cal86ey.png",
     Frieren: "https://mudae.net/uploads/9949210/sxCkz8W~aHZ9NcQ.png",
+    Kirby: "https://mudae.net/uploads/7502166/hw-q1lu~qEk1Egg.png",
 };
 const mudaeAliasesByName = {
     "Levi Ackerman": ["Levi"],

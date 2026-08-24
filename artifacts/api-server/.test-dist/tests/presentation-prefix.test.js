@@ -27,10 +27,25 @@ describe("character presentation", () => {
     });
     it("keeps the curated Mudae artwork and canonical-name aliases attached to the catalog", () => {
         assert.equal(seedCharacters.length, 12);
-        assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 11);
+        assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 12);
         assert.deepEqual(seedCharacters.find((character) => character.name === "Levi Ackerman")?.aliases, ["Levi"]);
         assert.deepEqual(seedCharacters.find((character) => character.name === "Eren Yeager")?.aliases, ["Eren Jaeger"]);
-        assert.equal(seedCharacters.find((character) => character.name === "Kirby")?.imageUrl, null);
+        assert.match(seedCharacters.find((character) => character.name === "Kirby")?.imageUrl ?? "", /^https:\/\/mudae\.net\/uploads\/7502166\//);
+    });
+    it("passes every populated seed artwork URL through the existing character card", () => {
+        for (const character of seedCharacters.filter((entry) => entry.imageUrl)) {
+            const card = characterCard({
+                id: "00000000-0000-0000-0000-000000000001",
+                characterId: 1,
+                name: character.name,
+                series: character.series,
+                rarity: character.rarity,
+                value: character.value,
+                description: character.description,
+                imageUrl: character.imageUrl,
+            });
+            assert.equal(card.embeds[0].data.image?.url, character.imageUrl);
+        }
     });
     it("uses a configured image URL or an explicit safe fallback", () => {
         const withImage = characterCard({ ...roll, imageUrl: "https://cdn.example.test/gojo.png" });
