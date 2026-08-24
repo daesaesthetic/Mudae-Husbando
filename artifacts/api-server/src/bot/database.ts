@@ -18,7 +18,7 @@ export class GameDatabase {
   public readonly economy: EconomyService;
   public readonly cooldowns: CooldownService;
   private readonly rollExpirationMs = Number(
-    process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000,
+    process.env.ROLL_EXPIRATION_MS ?? 3 * 60 * 1000,
   );
   private readonly rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 10);
   private readonly rollReplenishmentMs = Number(

@@ -135,6 +135,15 @@ export const migrations: readonly Migration[] = [
         ADD CONSTRAINT mudae_characters_roll_weight_positive CHECK (roll_weight > 0);
     `,
   },
+  {
+    id: "008",
+    name: "shorten-unclaimed-roll-expiration",
+    sql: `
+      UPDATE mudae_rolls
+      SET expires_at = LEAST(expires_at, created_at + INTERVAL '3 minutes')
+      WHERE claimed_by IS NULL;
+    `,
+  },
 ];
 
 export function pendingMigrations(

@@ -65,7 +65,7 @@ The first playable slice includes verified character rolls, persistent expiring 
 
 - The API workflow runs both the health endpoint and Discord bot.
 - Discord slash commands are registered globally during startup and may take a short time to appear.
-- `ROLL_EXPIRATION_MS` optionally controls claim duration; it defaults to 15 minutes.
+- `ROLL_EXPIRATION_MS` optionally controls claim duration; it defaults to 3 minutes to match the short Mudae-style claim window.
 - Phase 1 adds the `mudae_currency_transactions` and `mudae_cooldowns` persistence tables without adding economy commands.
 
 ## Pointers
