@@ -43,6 +43,14 @@ const mudaeArtworkByName: Record<string, string> = {
   Rem: "https://mudae.net/uploads/4190198/bZZfHPc~bFtvJih.png",
   "Usagi Tsukino": "https://mudae.net/uploads/2365375/4Z4lE6n~NHa5BWV.png",
   "Anya Forger": "https://mudae.net/uploads/7630102/BBk5HCW~omw8wtg.png",
+  Vegeta: "https://mudae.net/uploads/7080902/L5VIIXb~j5yna3N.png",
+  "Kakashi Hatake": "https://mudae.net/uploads/8665134/abJvCgn~Stc66AT.png",
+  "Roronoa Zoro": "https://mudae.net/uploads/3151276/gCOsQA-~MFN1Aex.png",
+  Power: "https://mudae.net/uploads/7637289/iwjF5jJ~QQRabyr.png",
+  "Shinobu Kochou": "https://mudae.net/uploads/9267504/qCATdF2~kjbDMks.png",
+  Emilia: "https://mudae.net/uploads/1371258/wJZuc4n~m4a6F2F.png",
+  Megumin: "https://mudae.net/uploads/7071469/9N_43oX~6fm6YnX.png",
+  "Asuka Langley Soryu": "https://mudae.net/uploads/9567118/ntUSUwH~xLOMTTZ.png",
 };
 
 const mudaeAliasesByName: Record<string, string[]> = {
@@ -53,6 +61,7 @@ const mudaeAliasesByName: Record<string, string[]> = {
   "Edward Elric": ["Edward"],
   "Tanjirou Kamado": ["Tanjiro", "Tanjiro Kamado"],
   "Usagi Tsukino": ["Sailor Moon"],
+  "Shinobu Kochou": ["Shinobu Kocho"],
 };
 
 const characterStats: Record<string, { value: number; popularityRank: number; rollWeight: number }> = {
@@ -80,6 +89,14 @@ const characterStats: Record<string, { value: number; popularityRank: number; ro
   "Rem": { value: 230, popularityRank: 22, rollWeight: 2 },
   "Usagi Tsukino": { value: 165, popularityRank: 23, rollWeight: 4 },
   "Anya Forger": { value: 135, popularityRank: 24, rollWeight: 6 },
+  Vegeta: { value: 255, popularityRank: 25, rollWeight: 1 },
+  "Kakashi Hatake": { value: 225, popularityRank: 26, rollWeight: 2 },
+  "Roronoa Zoro": { value: 235, popularityRank: 27, rollWeight: 2 },
+  Power: { value: 220, popularityRank: 28, rollWeight: 3 },
+  "Shinobu Kochou": { value: 205, popularityRank: 29, rollWeight: 3 },
+  Emilia: { value: 215, popularityRank: 30, rollWeight: 3 },
+  Megumin: { value: 200, popularityRank: 31, rollWeight: 4 },
+  "Asuka Langley Soryu": { value: 185, popularityRank: 32, rollWeight: 4 },
 };
 
 export const seedCharacters: Omit<CatalogCharacter, "id">[] = [
@@ -107,6 +124,14 @@ export const seedCharacters: Omit<CatalogCharacter, "id">[] = [
   ["Rem", "Re:Zero kara Hajimeru Isekai Seikatsu", "anime", "female", "A loyal oni maid with formidable courage and devotion.", "rare"],
   ["Usagi Tsukino", "Pretty Soldier Sailor Moon", "anime", "female", "A guardian of love and justice defending the world.", "uncommon"],
   ["Anya Forger", "SPY×FAMILY", "anime", "female", "A telepathic child determined to keep her unusual family together.", "common"],
+  ["Vegeta", "Dragon Ball Z", "anime", "male", "A proud Saiyan prince who turns rivalry into strength.", "rare"],
+  ["Kakashi Hatake", "Naruto", "anime", "male", "A copy ninja mentor known for calm strategy and loyalty.", "rare"],
+  ["Roronoa Zoro", "One Piece", "anime", "male", "A swordsman pursuing a promise on the path to greatness.", "rare"],
+  ["Power", "Chainsaw Man", "anime", "female", "A fiendish devil hunter with an outsized personality.", "rare"],
+  ["Shinobu Kochou", "Kimetsu no Yaiba", "anime", "female", "An insect Hashira who pairs precision with compassion.", "uncommon"],
+  ["Emilia", "Re:Zero kara Hajimeru Isekai Seikatsu", "anime", "female", "A kind-hearted half-elf candidate facing a world of suspicion.", "uncommon"],
+  ["Megumin", "Kono Subarashii Sekai ni Shukufuku wo!", "anime", "female", "A brilliant arch wizard devoted to one spectacular spell.", "uncommon"],
+  ["Asuka Langley Soryu", "Neon Genesis Evangelion", "anime", "female", "A fiercely determined Eva pilot with an unshakable competitive spirit.", "uncommon"],
 ].map(([name, series, mediaType, gender, description, rarity]) => ({
   name,
   aliases: [],

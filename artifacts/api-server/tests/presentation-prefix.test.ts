@@ -50,17 +50,17 @@ describe("character presentation", () => {
   });
 
   it("keeps the curated Mudae artwork, aliases, and stat distribution attached to the catalog", () => {
-    assert.equal(seedCharacters.length, 24);
-    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 24);
+    assert.equal(seedCharacters.length, 32);
+    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 32);
     assert.ok(
       seedCharacters.every((character) =>
         character.imageUrl?.startsWith("https://mudae.net/uploads/"),
       ),
     );
-    assert.equal(new Set(seedCharacters.map((character) => character.popularityRank)).size, 24);
+    assert.equal(new Set(seedCharacters.map((character) => character.popularityRank)).size, 32);
     assert.ok(seedCharacters.every((character) => character.value > 0 && character.rollWeight > 0));
-    assert.equal(seedCharacters.filter((character) => character.gender === "male").length, 13);
-    assert.equal(seedCharacters.filter((character) => character.gender === "female").length, 10);
+    assert.equal(seedCharacters.filter((character) => character.gender === "male").length, 16);
+    assert.equal(seedCharacters.filter((character) => character.gender === "female").length, 15);
     assert.ok(
       Math.min(...seedCharacters.filter((character) => character.rarity === "rare").map((character) => character.value)) >
       Math.max(...seedCharacters.filter((character) => character.rarity === "common").map((character) => character.value)),
