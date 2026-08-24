@@ -10,6 +10,8 @@ export type CatalogCharacter = {
   description: string;
   rarity: string;
   value: number;
+  popularityRank: number;
+  rollWeight: number;
   status: "verified";
 };
 
@@ -36,30 +38,45 @@ const mudaeAliasesByName: Record<string, string[]> = {
   "Eren Yeager": ["Eren Jaeger"],
 };
 
+const characterStats: Record<string, { value: number; popularityRank: number; rollWeight: number }> = {
+  "Satoru Gojo": { value: 275, popularityRank: 1, rollWeight: 1 },
+  "Yuji Itadori": { value: 145, popularityRank: 8, rollWeight: 5 },
+  "Mikasa Ackerman": { value: 240, popularityRank: 3, rollWeight: 2 },
+  "Levi Ackerman": { value: 265, popularityRank: 2, rollWeight: 1 },
+  "Monkey D. Luffy": { value: 220, popularityRank: 4, rollWeight: 2 },
+  Nami: { value: 180, popularityRank: 6, rollWeight: 3 },
+  "Naruto Uzumaki": { value: 205, popularityRank: 5, rollWeight: 3 },
+  "Sasuke Uchiha": { value: 195, popularityRank: 7, rollWeight: 3 },
+  "Eren Yeager": { value: 170, popularityRank: 9, rollWeight: 4 },
+  Makima: { value: 250, popularityRank: 10, rollWeight: 2 },
+  Frieren: { value: 235, popularityRank: 11, rollWeight: 2 },
+  Kirby: { value: 120, popularityRank: 12, rollWeight: 6 },
+};
+
 export const seedCharacters: Omit<CatalogCharacter, "id">[] = [
-  ["Satoru Gojo", "Jujutsu Kaisen", "anime", "male", 95, "The strongest modern jujutsu sorcerer.", "rare"],
-  ["Yuji Itadori", "Jujutsu Kaisen", "anime", "male", 55, "A kind-hearted student carrying a dangerous curse.", "common"],
-  ["Mikasa Ackerman", "Attack on Titan", "anime", "female", 85, "An elite soldier and fiercely loyal protector.", "rare"],
-  ["Levi Ackerman", "Attack on Titan", "anime", "male", 90, "Humanity's most formidable soldier.", "rare"],
-  ["Monkey D. Luffy", "One Piece", "anime", "male", 75, "A rubber-bodied pirate chasing the title of Pirate King.", "uncommon"],
-  ["Nami", "One Piece", "anime", "female", 60, "The Straw Hat navigator with a gift for cartography.", "uncommon"],
-  ["Naruto Uzumaki", "Naruto", "anime", "male", 70, "A determined ninja who never abandons his way.", "uncommon"],
-  ["Sasuke Uchiha", "Naruto", "anime", "male", 72, "A gifted shinobi walking a hard road toward redemption.", "uncommon"],
-  ["Eren Yeager", "Attack on Titan", "anime", "male", 68, "A soldier driven by an uncompromising desire for freedom.", "uncommon"],
-  ["Makima", "Chainsaw Man", "anime", "female", 88, "A composed and enigmatic devil hunter.", "rare"],
-  ["Frieren", "Frieren: Beyond Journey's End", "anime", "female", 82, "An elven mage learning what it means to remember.", "rare"],
-  ["Kirby", "Kirby", "game", "unknown", 45, "A cheerful hero with an appetite for impossible adventures.", "common"],
-].map(([name, series, mediaType, gender, value, description, rarity]) => ({
-  name: name as string,
+  ["Satoru Gojo", "Jujutsu Kaisen", "anime", "male", "The strongest modern jujutsu sorcerer.", "rare"],
+  ["Yuji Itadori", "Jujutsu Kaisen", "anime", "male", "A kind-hearted student carrying a dangerous curse.", "common"],
+  ["Mikasa Ackerman", "Attack on Titan", "anime", "female", "An elite soldier and fiercely loyal protector.", "rare"],
+  ["Levi Ackerman", "Attack on Titan", "anime", "male", "Humanity's most formidable soldier.", "rare"],
+  ["Monkey D. Luffy", "One Piece", "anime", "male", "A rubber-bodied pirate chasing the title of Pirate King.", "uncommon"],
+  ["Nami", "One Piece", "anime", "female", "The Straw Hat navigator with a gift for cartography.", "uncommon"],
+  ["Naruto Uzumaki", "Naruto", "anime", "male", "A determined ninja who never abandons his way.", "uncommon"],
+  ["Sasuke Uchiha", "Naruto", "anime", "male", "A gifted shinobi walking a hard road toward redemption.", "uncommon"],
+  ["Eren Yeager", "Attack on Titan", "anime", "male", "A soldier driven by an uncompromising desire for freedom.", "uncommon"],
+  ["Makima", "Chainsaw Man", "anime", "female", "A composed and enigmatic devil hunter.", "rare"],
+  ["Frieren", "Frieren: Beyond Journey's End", "anime", "female", "An elven mage learning what it means to remember.", "rare"],
+  ["Kirby", "Kirby", "game", "unknown", "A cheerful hero with an appetite for impossible adventures.", "common"],
+].map(([name, series, mediaType, gender, description, rarity]) => ({
+  name,
   aliases: [],
-  series: series as string,
-  mediaType: mediaType as string,
-  gender: gender as string,
+  series,
+  mediaType,
+  gender,
   sourceUrl: "https://mudae.net/search?type=character",
   imageUrl: null,
-  description: description as string,
-  rarity: rarity as string,
-  value: value as number,
+  description,
+  rarity,
+  ...characterStats[name],
   status: "verified" as const,
 })).map((character) => ({
   ...character,

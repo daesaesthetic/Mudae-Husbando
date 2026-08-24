@@ -123,6 +123,18 @@ export const migrations: readonly Migration[] = [
         CHECK (available_claims >= 0);
     `,
   },
+  {
+    id: "007",
+    name: "character-popularity-and-roll-stats",
+    sql: `
+      ALTER TABLE mudae_characters
+        ADD COLUMN IF NOT EXISTS popularity_rank INTEGER NOT NULL DEFAULT 9999,
+        ADD COLUMN IF NOT EXISTS roll_weight INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE mudae_characters
+        ADD CONSTRAINT mudae_characters_popularity_rank_positive CHECK (popularity_rank > 0),
+        ADD CONSTRAINT mudae_characters_roll_weight_positive CHECK (roll_weight > 0);
+    `,
+  },
 ];
 
 export function pendingMigrations(
