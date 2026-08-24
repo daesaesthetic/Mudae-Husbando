@@ -51,7 +51,12 @@ describe("character presentation", () => {
 
   it("keeps the curated Mudae artwork, aliases, and stat distribution attached to the catalog", () => {
     assert.equal(seedCharacters.length, 24);
-    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 12);
+    assert.equal(seedCharacters.filter((character) => character.imageUrl).length, 24);
+    assert.ok(
+      seedCharacters.every((character) =>
+        character.imageUrl?.startsWith("https://mudae.net/uploads/"),
+      ),
+    );
     assert.equal(new Set(seedCharacters.map((character) => character.popularityRank)).size, 24);
     assert.ok(seedCharacters.every((character) => character.value > 0 && character.rollWeight > 0));
     assert.equal(seedCharacters.filter((character) => character.gender === "male").length, 13);
@@ -72,7 +77,10 @@ describe("character presentation", () => {
       seedCharacters.find((character) => character.name === "Kirby")?.imageUrl ?? "",
       /^https:\/\/mudae\.net\/uploads\/7502166\//,
     );
-    assert.equal(seedCharacters.find((character) => character.name === "Yor Forger")?.imageUrl, null);
+    assert.equal(
+      seedCharacters.find((character) => character.name === "Usagi Tsukino")?.aliases.includes("Sailor Moon"),
+      true,
+    );
   });
 
   it("passes every populated seed artwork URL through the existing character card", () => {

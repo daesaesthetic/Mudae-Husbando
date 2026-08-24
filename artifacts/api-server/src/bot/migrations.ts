@@ -144,6 +144,50 @@ export const migrations: readonly Migration[] = [
       WHERE claimed_by IS NULL;
     `,
   },
+  {
+    id: "009",
+    name: "reconcile-canonical-character-records",
+    sql: `
+      DELETE FROM mudae_characters duplicate
+      USING (VALUES
+        ('Tanjiro Kamado', 'Demon Slayer', 'Tanjirou Kamado', 'Kimetsu no Yaiba'),
+        ('Yor Forger', 'Spy × Family', 'Yor Forger', 'SPY×FAMILY'),
+        ('Nezuko Kamado', 'Demon Slayer', 'Nezuko Kamado', 'Kimetsu no Yaiba'),
+        ('Rem', 'Re:Zero −Starting Life in Another World−', 'Rem', 'Re:Zero kara Hajimeru Isekai Seikatsu'),
+        ('Sailor Moon', 'Sailor Moon', 'Usagi Tsukino', 'Pretty Soldier Sailor Moon'),
+        ('Anya Forger', 'Spy × Family', 'Anya Forger', 'SPY×FAMILY')
+      ) AS mapping(old_name, old_series, canonical_name, canonical_series)
+      JOIN mudae_characters keeper
+        ON keeper.name = mapping.old_name AND keeper.series = mapping.old_series
+      WHERE duplicate.name = mapping.canonical_name
+        AND duplicate.series = mapping.canonical_series
+        AND duplicate.id <> keeper.id
+        AND NOT EXISTS (SELECT 1 FROM mudae_collections WHERE character_id = duplicate.id)
+        AND NOT EXISTS (SELECT 1 FROM mudae_rolls WHERE character_id = duplicate.id)
+        AND NOT EXISTS (SELECT 1 FROM mudae_wishlists WHERE character_id = duplicate.id);
+
+      UPDATE mudae_characters character
+      SET name = mapping.canonical_name,
+          series = mapping.canonical_series,
+          updated_at = NOW()
+      FROM (VALUES
+        ('Tanjiro Kamado', 'Demon Slayer', 'Tanjirou Kamado', 'Kimetsu no Yaiba'),
+        ('Yor Forger', 'Spy × Family', 'Yor Forger', 'SPY×FAMILY'),
+        ('Nezuko Kamado', 'Demon Slayer', 'Nezuko Kamado', 'Kimetsu no Yaiba'),
+        ('Rem', 'Re:Zero −Starting Life in Another World−', 'Rem', 'Re:Zero kara Hajimeru Isekai Seikatsu'),
+        ('Sailor Moon', 'Sailor Moon', 'Usagi Tsukino', 'Pretty Soldier Sailor Moon'),
+        ('Anya Forger', 'Spy × Family', 'Anya Forger', 'SPY×FAMILY')
+      ) AS mapping(old_name, old_series, canonical_name, canonical_series)
+      WHERE character.name = mapping.old_name
+        AND character.series = mapping.old_series
+        AND NOT EXISTS (
+          SELECT 1 FROM mudae_characters existing
+          WHERE existing.name = mapping.canonical_name
+            AND existing.series = mapping.canonical_series
+            AND existing.id <> character.id
+        );
+    `,
+  },
 ];
 
 export function pendingMigrations(
