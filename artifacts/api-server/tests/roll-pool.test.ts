@@ -166,6 +166,10 @@ describe("persistent roll pool", () => {
     if (typeof repeated === "object") assert.equal(repeated.status, "claim_unavailable");
     assert.equal(pool.user.available_rolls, 9);
     assert.equal(pool.user.available_claims, 0);
+    const secondRoll = await database.roll("after-claim", "player", null);
+    assert.equal(secondRoll.status, "success");
+    assert.equal(pool.user.available_rolls, 8);
+    assert.equal(pool.user.available_claims, 0);
   });
 
   it("rejects a second claim while the claim pool is replenishing", async () => {
@@ -199,6 +203,26 @@ describe("persistent roll pool", () => {
     assert.equal(await database.claimRoll("missing-roll", "claimer"), "invalid");
     assert.equal(pool.user.available_claims, 1);
     assert.equal(pool.user.claim_replenishment_at, null);
+  });
+
+  it("allows only one concurrent claim when one claim remains", async () => {
+    const { database, pool } = databaseWithPool();
+    await database.roll("concurrent-claim", "player", null);
+    const results = await Promise.all([
+      database.claimRoll("concurrent-claim", "claimer"),
+      database.claimRoll("concurrent-claim", "claimer"),
+    ]);
+    assert.equal(
+      results.filter((result) => typeof result === "object" && result.status === "success").length,
+      1,
+    );
+    assert.equal(
+      results.filter(
+        (result) => typeof result === "object" && result.status === "claim_unavailable",
+      ).length,
+      1,
+    );
+    assert.equal(pool.user.available_claims, 0);
   });
 
   it("lets developer mode bypass availability without consuming normal rolls", async () => {

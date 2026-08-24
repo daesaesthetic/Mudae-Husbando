@@ -171,22 +171,20 @@ export async function startDiscordBot() {
       }
       if (interaction.commandName === "claim") {
         const result = await database.claimRoll("", interaction.user.id);
-        if (typeof result === "object" && result.status === "success")
-          return interaction.reply(
-            "Character claimed and saved to your collection.",
-          );
-        if (typeof result === "object" && result.status === "claim_unavailable")
+        if (typeof result === "object") {
+          if (result.status === "success")
+            return interaction.reply(
+              "Character claimed and saved to your collection.",
+            );
           return interaction.reply(
             result.replenishmentAt
               ? `Your claim is unavailable. It replenishes in about ${Math.ceil(Math.max(0, result.replenishmentAt.getTime() - Date.now()) / 60_000)} minutes.`
               : "Your claim is unavailable right now.",
           );
+        }
         return interaction.reply(
           {
             invalid: "You have no roll to claim.",
-            claim_unavailable: result.replenishmentAt
-              ? `Your claim is unavailable. It replenishes in about ${Math.ceil(Math.max(0, result.replenishmentAt.getTime() - Date.now()) / 60_000)} minutes.`
-              : "Your claim is unavailable right now.",
             claimed: "Your latest roll has already been claimed.",
             unavailable: "That character has already been claimed by another player.",
             expired:
