@@ -18,6 +18,7 @@ An actual Discord character-collection game with a verified-only catalog and per
 - Optional env: `ROLL_REPLENISHMENT_MS` — replenishment delay after the pool reaches zero; defaults to 1 hour
 - Optional env: `CLAIM_POOL_SIZE` — normal user claim pool size; defaults to 1
 - Optional env: `CLAIM_REPLENISHMENT_MS` — claim replenishment delay after a successful claim; defaults to 1 hour
+- Optional env: `BOT_PREFIX` — message-command prefix; defaults to `$`
 
 ## Stack
 
@@ -30,7 +31,9 @@ An actual Discord character-collection game with a verified-only catalog and per
 
 ## Where things live
 
-- `artifacts/api-server/src/bot/client.ts` — Discord slash commands and embeds
+- `artifacts/api-server/src/bot/client.ts` — Discord slash and prefix command routing
+- `artifacts/api-server/src/bot/presentation.ts` — reusable Discord character cards and game embeds
+- `artifacts/api-server/src/bot/prefix.ts` — configurable message-prefix parser
 - `artifacts/api-server/src/bot/database.ts` — persistent Postgres game storage and verified-only queries
 - `artifacts/api-server/src/bot/catalog.ts` — manually curated verified seed catalog
 - `artifacts/api-server/src/bot/migrations.ts` — ordered, recorded, non-destructive database migrations

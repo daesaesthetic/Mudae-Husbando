@@ -10,6 +10,8 @@ export type RollCardData = {
   mediaType?: string;
   gender?: string;
   imageUrl?: string | null;
+  expiresAt?: Date;
+  rollerName?: string;
   rarity: string;
   value: number;
   description: string;
@@ -24,6 +26,16 @@ export function characterCard(roll: RollCardData) {
       { name: "Series", value: roll.series || "Unknown", inline: true },
       { name: "Rarity", value: roll.rarity || "Common", inline: true },
       { name: "Value", value: `${roll.value}`, inline: true },
+      ...(roll.rollerName
+        ? [{ name: "Rolled By", value: roll.rollerName, inline: true }]
+        : []),
+      ...(roll.expiresAt
+        ? [{
+            name: "Claim Expires",
+            value: `<t:${Math.floor(new Date(roll.expiresAt).getTime() / 1000)}:R>`,
+            inline: true,
+          }]
+        : []),
     )
     .setFooter({ text: "Verified catalog • Claim before this roll expires" });
   if (roll.imageUrl) embed.setImage(roll.imageUrl);
@@ -36,6 +48,28 @@ export function characterCard(roll: RollCardData) {
     embeds: [embed],
     components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)],
   };
+}
+
+export type ClaimedCharacterData = Omit<RollCardData, "id" | "characterId"> & {
+  id: number;
+  claimant: string;
+};
+
+export function claimedCharacterCard(character: ClaimedCharacterData) {
+  const embed = new EmbedBuilder()
+    .setColor(rarityColors[character.rarity] ?? 0x64748b)
+    .setTitle(`${character.name} · #${character.id}`)
+    .setDescription(character.description || "No description available.")
+    .addFields(
+      { name: "Series", value: character.series || "Unknown", inline: true },
+      { name: "Rarity", value: character.rarity || "Common", inline: true },
+      { name: "Value", value: `${character.value}`, inline: true },
+      { name: "Claimed By", value: character.claimant, inline: true },
+    )
+    .setFooter({ text: "Verified catalog • Added to collection" });
+  if (character.imageUrl) embed.setImage(character.imageUrl);
+  else embed.addFields({ name: "Artwork", value: "Artwork coming soon", inline: true });
+  return { embeds: [embed] };
 }
 
 type CollectionPageData = {

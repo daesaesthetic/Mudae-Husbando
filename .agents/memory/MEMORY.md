@@ -1,3 +1,4 @@
 - [Imported artifact workflows](imported-artifact-workflows.md) — imported artifact metadata may need a workspace workflow configured manually before the service can run.
 - [TypeScript ESM tests](typescript-esm-tests.md) — compiled Node test imports need explicit `.js` local extensions for reliable ESM resolution.
 - [Global character uniqueness](global-character-uniqueness.md) — claimed characters are removed from future rolls and duplicate outstanding claims fail transactionally.
+- [Character artwork sourcing](character-artwork-sourcing.md) — use only approved, exact character art URLs; retain the card fallback when an asset is uncertain.

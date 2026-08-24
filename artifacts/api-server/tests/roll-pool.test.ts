@@ -22,6 +22,7 @@ class RollPool {
     status: string;
   }>();
   private userLock: Promise<void> = Promise.resolve();
+  public lastCharacterFilter: unknown = undefined;
 
   async connect() {
     let releaseUserLock = () => {};
@@ -39,11 +40,15 @@ class RollPool {
           return { rows: [{ ...this.user }], rowCount: 1 };
         }
         if (sql.includes("FROM mudae_characters c")) {
+          this.lastCharacterFilter = params[0];
           return {
             rows: [{
               id: 1,
               name: "Verified",
               series: "Test Series",
+              mediaType: "anime",
+              gender: params[0] ?? "unknown",
+              imageUrl: null,
               rarity: "rare",
               value: 50,
               description: "A verified character.",
@@ -233,5 +238,18 @@ describe("persistent roll pool", () => {
     assert.equal(result.status, "success");
     assert.equal(pool.user.available_rolls, 0);
     assert.equal(pool.user.rolls_used, 1);
+  });
+
+  it("uses the normal persistent roll transaction for deterministic category filters", async () => {
+    const { database, pool } = databaseWithPool();
+    const husbando = await database.roll("husbando", "player", null, false, "male");
+    assert.equal(husbando.status, "success");
+    assert.equal(pool.lastCharacterFilter, "male");
+    assert.equal(pool.user.available_rolls, 9);
+
+    const waifu = await database.roll("waifu", "player", null, false, "female");
+    assert.equal(waifu.status, "success");
+    assert.equal(pool.lastCharacterFilter, "female");
+    assert.equal(pool.user.available_rolls, 8);
   });
 });

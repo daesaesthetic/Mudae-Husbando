@@ -13,6 +13,7 @@ import { isDeveloperModeEnabled, toggleDeveloperMode } from "./developer.js";
 import {
   actionResult,
   characterCard,
+  claimedCharacterCard,
   collectionPage,
   developerModeCard,
   profileCard,
@@ -48,7 +49,8 @@ type CommandContext = {
 };
 
 type CommandResponse = string | ReturnType<typeof characterCard> | ReturnType<typeof profileCard> |
-  ReturnType<typeof collectionPage> | ReturnType<typeof searchResults> | ReturnType<typeof actionResult>;
+  ReturnType<typeof collectionPage> | ReturnType<typeof searchResults> | ReturnType<typeof actionResult> |
+  ReturnType<typeof claimedCharacterCard>;
 
 async function executeCommand(database: GameDatabase, context: CommandContext): Promise<CommandResponse | null> {
   const { command, args, userId, displayName, guildId } = context;
@@ -74,13 +76,18 @@ async function executeCommand(database: GameDatabase, context: CommandContext): 
           : "The verified catalog is empty. Ask an administrator to add verified characters.";
     if (result.status !== "success")
       return "Your player profile could not be loaded. Please try again.";
-    return characterCard(result.roll);
+    return characterCard({ ...result.roll, rollerName: displayName });
   }
 
   if (command === "claim") {
     const result = await database.claimRoll("", userId);
     if (typeof result === "object") {
-      if (result.status === "success") return "Character claimed and saved to your collection.";
+      if (result.status === "success") {
+        const character = await database.getCharacter(result.characterId);
+        return character
+          ? claimedCharacterCard({ ...character, claimant: displayName })
+          : "Character claimed and saved to your collection.";
+      }
       const minutes = result.replenishmentAt
         ? Math.ceil(Math.max(0, result.replenishmentAt.getTime() - Date.now()) / 60_000)
         : 0;
@@ -151,10 +158,6 @@ async function handleCommand(
   if (response) await reply(response);
 }
 
-async function handleButton(database: GameDatabase, interaction: ChatInputCommandInteraction | Message) {
-  return interaction;
-}
-
 export async function startDiscordBot() {
   if (!process.env.DISCORD_TOKEN) throw new Error("DISCORD_TOKEN is required to start the Discord bot.");
   const database = new GameDatabase();
@@ -190,8 +193,14 @@ export async function startDiscordBot() {
           return interaction.reply({ content: "That claim button is invalid.", ephemeral: true });
         await interaction.deferReply({ ephemeral: true });
         const result = await database.claimRoll(rollId, interaction.user.id);
-        if (typeof result === "object" && result.status === "success")
-          return interaction.editReply("Character claimed and saved to your collection.");
+        if (typeof result === "object" && result.status === "success") {
+          const character = await database.getCharacter(result.characterId);
+          return interaction.editReply(
+            character
+              ? claimedCharacterCard({ ...character, claimant: interaction.user.displayName })
+              : "Character claimed and saved to your collection.",
+          );
+        }
         if (typeof result === "object" && result.status === "claim_unavailable")
           return interaction.editReply("Your claim is unavailable right now. Another claim becomes available after the replenishment period.");
         return interaction.editReply({
@@ -216,10 +225,12 @@ export async function startDiscordBot() {
         { userId: interaction.user.id, displayName: interaction.user.displayName, guildId: interaction.guildId, command: interaction.commandName, args },
         (response) => interaction.reply(response),
       );
+      return;
     } catch (error) {
       console.error("Discord interaction failed", error);
-      if (interaction.replied || interaction.deferred) await interaction.followUp("Something went wrong while processing that command.");
-      else await interaction.reply("Something went wrong while processing that command.");
+      if (interaction.replied || interaction.deferred)
+        return interaction.followUp("Something went wrong while processing that command.");
+      return interaction.reply("Something went wrong while processing that command.");
     }
   });
 

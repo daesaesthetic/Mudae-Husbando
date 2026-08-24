@@ -165,14 +165,15 @@ export class GameDatabase {
         id: number;
         name: string;
         series: string;
-        media_type: string;
+        mediaType: string;
         gender: string;
-        image_url: string | null;
+        imageUrl: string | null;
         rarity: string;
         value: number;
         description: string;
       }>(
-        `SELECT c.id, c.name, c.series, c.media_type, c.gender, c.image_url,
+        `SELECT c.id, c.name, c.series, c.media_type AS "mediaType", c.gender,
+                c.image_url AS "imageUrl",
                 c.rarity, c.value, c.description
          FROM mudae_characters c
          WHERE c.status = 'verified'
