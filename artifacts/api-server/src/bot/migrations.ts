@@ -91,6 +91,18 @@ export const migrations: readonly Migration[] = [
         ON mudae_cooldowns (expires_at);
     `,
   },
+  {
+    id: "004",
+    name: "persistent-roll-pool",
+    sql: `
+      ALTER TABLE mudae_users
+        ADD COLUMN IF NOT EXISTS available_rolls INTEGER NOT NULL DEFAULT 5,
+        ADD COLUMN IF NOT EXISTS roll_replenishment_at TIMESTAMPTZ;
+      ALTER TABLE mudae_users
+        ADD CONSTRAINT mudae_users_available_rolls_nonnegative
+        CHECK (available_rolls >= 0);
+    `,
+  },
 ];
 
 export function pendingMigrations(

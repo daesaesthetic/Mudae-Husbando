@@ -88,6 +88,8 @@ export function profileCard(displayName: string, profile: {
   wishlist_count: number;
   claims_count: number;
   rolls_used: number;
+  available_rolls: number;
+  roll_replenishment_at: Date | null;
   currency: number;
 }) {
   return {
@@ -102,6 +104,18 @@ export function profileCard(displayName: string, profile: {
           { name: "Wishlist", value: `${profile.wishlist_count}`, inline: true },
           { name: "Claims", value: `${profile.claims_count}`, inline: true },
           { name: "Rolls", value: `${profile.rolls_used}`, inline: true },
+          {
+            name: "Rolls Available",
+            value: `${profile.available_rolls} / ${Number(process.env.ROLL_POOL_SIZE ?? 5)}`,
+            inline: true,
+          },
+          ...(profile.available_rolls === 0 && profile.roll_replenishment_at
+            ? [{
+                name: "Replenishes In",
+                value: `${Math.ceil(Math.max(0, new Date(profile.roll_replenishment_at).getTime() - Date.now()) / 60_000)} minutes`,
+                inline: true,
+              }]
+            : []),
           { name: "Currency", value: `${profile.currency}`, inline: true },
         )
         .setFooter({ text: "Your verified character collection" }),

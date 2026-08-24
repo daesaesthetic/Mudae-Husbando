@@ -20,6 +20,10 @@ export class GameDatabase {
   private readonly rollExpirationMs = Number(
     process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000,
   );
+  private readonly rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 5);
+  private readonly rollReplenishmentMs = Number(
+    process.env.ROLL_REPLENISHMENT_MS ?? 60 * 60 * 1000,
+  );
 
   constructor(pool?: pg.Pool) {
     if (!pool && !process.env.DATABASE_URL) {
@@ -97,6 +101,121 @@ export class GameDatabase {
       );
       await client.query("COMMIT");
       return expiresAt;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async roll(
+    id: string,
+    discordId: string,
+    guildId: string | null,
+    developerMode = false,
+  ) {
+    const expiresAt = new Date(Date.now() + this.rollExpirationMs);
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const userResult = await client.query<{
+        available_rolls: number;
+        roll_replenishment_at: Date | null;
+      }>(
+        `SELECT available_rolls, roll_replenishment_at
+         FROM mudae_users WHERE discord_id = $1 FOR UPDATE`,
+        [discordId],
+      );
+      if (!userResult.rowCount) {
+        await client.query("ROLLBACK");
+        return { status: "missing_user" as const };
+      }
+
+      let availableRolls = Number(userResult.rows[0].available_rolls);
+      const replenishmentAt = userResult.rows[0].roll_replenishment_at;
+      if (
+        !developerMode &&
+        availableRolls === 0 &&
+        replenishmentAt &&
+        new Date(replenishmentAt).getTime() <= Date.now()
+      ) {
+        availableRolls = this.rollPoolSize;
+        await client.query(
+          `UPDATE mudae_users
+           SET available_rolls = $2, roll_replenishment_at = NULL, updated_at = NOW()
+           WHERE discord_id = $1`,
+          [discordId, availableRolls],
+        );
+      }
+      if (!developerMode && availableRolls <= 0) {
+        await client.query("ROLLBACK");
+        return {
+          status: "exhausted" as const,
+          replenishmentAt: replenishmentAt ? new Date(replenishmentAt) : null,
+        };
+      }
+
+      const characterResult = await client.query<{
+        id: number;
+        name: string;
+        series: string;
+        rarity: string;
+        value: number;
+        description: string;
+      }>(
+        `SELECT c.id, c.name, c.series, c.rarity, c.value, c.description
+         FROM mudae_characters c
+         WHERE c.status = 'verified'
+           AND NOT EXISTS (
+             SELECT 1 FROM mudae_collections o WHERE o.character_id = c.id
+           )
+         ORDER BY RANDOM() LIMIT 1`,
+      );
+      if (!characterResult.rowCount) {
+        await client.query("ROLLBACK");
+        return { status: "empty_catalog" as const };
+      }
+
+      let nextReplenishmentAt: Date | null = null;
+      if (!developerMode) {
+        const nextAvailable = availableRolls - 1;
+        if (nextAvailable === 0) {
+          nextReplenishmentAt = new Date(Date.now() + this.rollReplenishmentMs);
+        }
+        await client.query(
+          `UPDATE mudae_users
+           SET available_rolls = $2, roll_replenishment_at = $3,
+               rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW()
+           WHERE discord_id = $1`,
+          [discordId, nextAvailable, nextReplenishmentAt],
+        );
+      } else {
+        await client.query(
+          `UPDATE mudae_users
+           SET rolls_used = rolls_used + 1, last_roll_at = NOW(), updated_at = NOW()
+           WHERE discord_id = $1`,
+          [discordId],
+        );
+      }
+      const character = characterResult.rows[0];
+      await client.query(
+        "INSERT INTO mudae_rolls (id, discord_id, guild_id, character_id, expires_at) VALUES ($1,$2,$3,$4,$5)",
+        [id, discordId, guildId, character.id, expiresAt],
+      );
+      await client.query("COMMIT");
+      return {
+        status: "success" as const,
+        roll: {
+          id,
+          discordId,
+          characterId: character.id,
+          expiresAt,
+          claimedBy: null,
+          ...character,
+        },
+        availableRolls: developerMode ? availableRolls : availableRolls - 1,
+      };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -298,7 +417,8 @@ export class GameDatabase {
 
   async profile(discordId: string) {
     const result = await this.pool.query(
-      `SELECT u.currency, u.rolls_used, u.claims_count,
+      `SELECT u.currency, u.rolls_used, u.claims_count, u.available_rolls,
+              u.roll_replenishment_at,
               COUNT(o.character_id)::int AS unique_characters,
               COALESCE(SUM(o.quantity), 0)::int AS total_copies,
               COUNT(o.character_id) FILTER (WHERE o.favorite)::int AS favorites,
@@ -311,6 +431,8 @@ export class GameDatabase {
       | {
           currency: number;
           rolls_used: number;
+          available_rolls: number;
+          roll_replenishment_at: Date | null;
           claims_count: number;
           unique_characters: number;
           total_copies: number;

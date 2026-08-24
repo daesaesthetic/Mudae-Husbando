@@ -8,7 +8,6 @@ import {
 } from "discord.js";
 import { GameDatabase } from "./database";
 import {
-  canPerformRoll,
   isDeveloperModeEnabled,
   toggleDeveloperMode,
 } from "./developer.js";
@@ -65,8 +64,6 @@ const commands = [
         .setRequired(true),
     ),
 ].map((command) => command.toJSON());
-
-const normalRollCooldownMs = Number(process.env.ROLL_COOLDOWN_MS ?? 60_000);
 
 export async function startDiscordBot() {
   if (!process.env.DISCORD_TOKEN)
@@ -146,38 +143,28 @@ export async function startDiscordBot() {
       }
       if (interaction.commandName === "roll") {
         const developerMode = isDeveloperModeEnabled(interaction.user.id);
-        const canRoll = await canPerformRoll(developerMode, () =>
-          database.cooldowns.tryAcquire(
-            {
-              userId: interaction.user.id,
-              guildId: interaction.guildId,
-              action: "roll",
-            },
-            normalRollCooldownMs,
-          ),
-        );
-        if (!canRoll)
-          return interaction.reply(
-            "You can roll again after the current roll cooldown expires.",
-          );
-        const character = await database.getRandomVerified();
-        if (!character)
-          return interaction.reply(
-            "The verified catalog is empty. Ask an administrator to add verified characters.",
-          );
         const rollId = randomUUID();
-        await database.createRoll(
+        const result = await database.roll(
           rollId,
           interaction.user.id,
           interaction.guildId,
-          character.id,
         );
-        const roll = await database.getRoll(rollId);
-        if (!roll)
+        if (result.status === "exhausted") {
+          const remainingMs = result.replenishmentAt
+            ? Math.max(0, result.replenishmentAt.getTime() - Date.now())
+            : 0;
+          const minutes = Math.ceil(remainingMs / 60_000);
           return interaction.reply(
-            "The roll could not be saved. Please try again.",
+            `Your roll pool is exhausted. It replenishes in about ${minutes} minute${minutes === 1 ? "" : "s"}.`,
           );
-        return interaction.reply(characterCard(roll));
+        }
+        if (result.status === "empty_catalog")
+          return interaction.reply(
+            "The verified catalog is empty. Ask an administrator to add verified characters.",
+          );
+        if (result.status !== "success")
+          return interaction.reply("Your player profile could not be loaded. Please try again.");
+        return interaction.reply(characterCard(result.roll));
       }
       if (interaction.commandName === "claim") {
         const result = await database.claimRoll("", interaction.user.id);
@@ -225,6 +212,8 @@ export async function startDiscordBot() {
             wishlist_count: 0,
             claims_count: 0,
             rolls_used: 0,
+            available_rolls: Number(process.env.ROLL_POOL_SIZE ?? 5),
+            roll_replenishment_at: null,
             currency: 0,
           }),
         );
