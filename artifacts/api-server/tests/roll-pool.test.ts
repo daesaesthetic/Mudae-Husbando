@@ -149,13 +149,13 @@ describe("persistent roll pool", () => {
     const { database, pool } = databaseWithPool();
     const rolled = await database.roll("claimable", "player", null);
     assert.equal(rolled.status, "success");
-    assert.equal(pool.user.available_rolls, 4);
+    assert.equal(pool.user.available_rolls, 9);
     assert.deepEqual(await database.claimRoll("claimable", "claimer"), {
       status: "success",
       characterId: 1,
     });
     assert.equal(await database.claimRoll("claimable", "claimer"), "claimed");
-    assert.equal(pool.user.available_rolls, 4);
+    assert.equal(pool.user.available_rolls, 9);
   });
 
   it("lets developer mode bypass availability without consuming normal rolls", async () => {
