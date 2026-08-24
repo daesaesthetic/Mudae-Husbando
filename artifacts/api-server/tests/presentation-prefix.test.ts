@@ -48,6 +48,22 @@ describe("character presentation", () => {
     );
   });
 
+  it("passes every populated seed artwork URL through the existing character card", () => {
+    for (const character of seedCharacters.filter((entry) => entry.imageUrl)) {
+      const card = characterCard({
+        id: "00000000-0000-0000-0000-000000000001",
+        characterId: 1,
+        name: character.name,
+        series: character.series,
+        rarity: character.rarity,
+        value: character.value,
+        description: character.description,
+        imageUrl: character.imageUrl,
+      });
+      assert.equal(card.embeds[0].data.image?.url, character.imageUrl);
+    }
+  });
+
   it("uses a configured image URL or an explicit safe fallback", () => {
     const withImage = characterCard({ ...roll, imageUrl: "https://cdn.example.test/gojo.png" });
     assert.equal(withImage.embeds[0].data.image?.url, "https://cdn.example.test/gojo.png");
