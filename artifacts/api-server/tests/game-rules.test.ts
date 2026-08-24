@@ -36,6 +36,14 @@ class FakePool {
     const client = {
       query: async (sql: string, params?: unknown[]): Promise<QueryResult> => {
         if (sql === "BEGIN") return { rows: [], rowCount: 0 };
+        if (sql.includes("FROM mudae_users WHERE discord_id = $1 FOR UPDATE"))
+          return {
+            rows: [{
+              available_claims: 1,
+              claim_replenishment_at: null,
+            }],
+            rowCount: 1,
+          };
         if (sql.startsWith("SELECT pg_advisory_xact_lock"))
           return { rows: [], rowCount: 0 };
         if (sql.startsWith("SELECT 1 FROM mudae_collections"))

@@ -10,6 +10,8 @@ class RollPool {
     available_rolls: 10,
     roll_replenishment_at: null as Date | null,
     rolls_used: 0,
+    available_claims: 1,
+    claim_replenishment_at: null as Date | null,
   };
   rolls = new Map<string, {
     id: string;
@@ -53,6 +55,11 @@ class RollPool {
           this.user.available_rolls = Number(params[1]);
           this.user.roll_replenishment_at = (params[2] as Date | null) ?? null;
           this.user.rolls_used += 1;
+          return { rows: [], rowCount: 1 };
+        }
+        if (sql.startsWith("UPDATE mudae_users") && sql.includes("available_claims = $2")) {
+          this.user.available_claims = Number(params[1]);
+          this.user.claim_replenishment_at = (params[2] as Date | null) ?? null;
           return { rows: [], rowCount: 1 };
         }
         if (sql.startsWith("UPDATE mudae_users") && sql.includes("rolls_used = rolls_used + 1")) {
@@ -154,8 +161,44 @@ describe("persistent roll pool", () => {
       status: "success",
       characterId: 1,
     });
-    assert.equal(await database.claimRoll("claimable", "claimer"), "claimed");
+    const repeated = await database.claimRoll("claimable", "claimer");
+    assert.equal(typeof repeated, "object");
+    if (typeof repeated === "object") assert.equal(repeated.status, "claim_unavailable");
     assert.equal(pool.user.available_rolls, 9);
+    assert.equal(pool.user.available_claims, 0);
+  });
+
+  it("rejects a second claim while the claim pool is replenishing", async () => {
+    const { database, pool } = databaseWithPool();
+    await database.roll("first-claim", "player", null);
+    assert.deepEqual(await database.claimRoll("first-claim", "claimer"), {
+      status: "success",
+      characterId: 1,
+    });
+    const second = await database.roll("second-roll", "player", null);
+    assert.equal(second.status, "success");
+    const rejected = await database.claimRoll("second-roll", "claimer");
+    assert.equal(typeof rejected, "object");
+    if (typeof rejected === "object") assert.equal(rejected.status, "claim_unavailable");
+    assert.equal(pool.user.available_claims, 0);
+  });
+
+  it("restores an expired claim pool and allows the next claim", async () => {
+    const { database, pool } = databaseWithPool();
+    pool.user.available_claims = 0;
+    pool.user.claim_replenishment_at = new Date(Date.now() - 1);
+    await database.roll("restored-claim", "player", null);
+    const result = await database.claimRoll("restored-claim", "claimer");
+    assert.deepEqual(result, { status: "success", characterId: 1 });
+    assert.equal(pool.user.available_claims, 0);
+    assert.ok(pool.user.claim_replenishment_at instanceof Date);
+  });
+
+  it("does not consume claim availability when claim validation fails", async () => {
+    const { database, pool } = databaseWithPool();
+    assert.equal(await database.claimRoll("missing-roll", "claimer"), "invalid");
+    assert.equal(pool.user.available_claims, 1);
+    assert.equal(pool.user.claim_replenishment_at, null);
   });
 
   it("lets developer mode bypass availability without consuming normal rolls", async () => {

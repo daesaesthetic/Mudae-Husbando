@@ -24,6 +24,10 @@ export class GameDatabase {
   private readonly rollReplenishmentMs = Number(
     process.env.ROLL_REPLENISHMENT_MS ?? 60 * 60 * 1000,
   );
+  private readonly claimPoolSize = Number(process.env.CLAIM_POOL_SIZE ?? 1);
+  private readonly claimReplenishmentMs = Number(
+    process.env.CLAIM_REPLENISHMENT_MS ?? 60 * 60 * 1000,
+  );
 
   constructor(pool?: pg.Pool) {
     if (!pool && !process.env.DATABASE_URL) {
@@ -228,6 +232,36 @@ export class GameDatabase {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const user = await client.query<{
+        available_claims: number;
+        claim_replenishment_at: Date | null;
+      }>(
+        `SELECT available_claims, claim_replenishment_at
+         FROM mudae_users WHERE discord_id = $1 FOR UPDATE`,
+        [discordId],
+      );
+      if (!user.rowCount) {
+        await client.query("ROLLBACK");
+        return "invalid" as const;
+      }
+      let availableClaims = Number(user.rows[0].available_claims);
+      const claimReplenishmentAt = user.rows[0].claim_replenishment_at;
+      if (
+        availableClaims === 0 &&
+        claimReplenishmentAt &&
+        new Date(claimReplenishmentAt).getTime() <= Date.now()
+      ) {
+        availableClaims = this.claimPoolSize;
+      }
+      if (availableClaims <= 0) {
+        await client.query("ROLLBACK");
+        return {
+          status: "claim_unavailable" as const,
+          replenishmentAt: claimReplenishmentAt
+            ? new Date(claimReplenishmentAt)
+            : null,
+        };
+      }
       const roll = await client.query<{
         id: string;
         discord_id: string;
@@ -284,8 +318,19 @@ export class GameDatabase {
         [discordId, characterId],
       );
       await client.query(
-        "UPDATE mudae_users SET claims_count = claims_count + 1, updated_at = NOW() WHERE discord_id = $1",
-        [discordId],
+        `UPDATE mudae_users
+         SET claims_count = claims_count + 1,
+             available_claims = $2,
+             claim_replenishment_at = $3,
+             updated_at = NOW()
+         WHERE discord_id = $1`,
+        [
+          discordId,
+          availableClaims - 1,
+          availableClaims - 1 === 0
+            ? new Date(Date.now() + this.claimReplenishmentMs)
+            : null,
+        ],
       );
       await client.query("COMMIT");
       return { status: "success" as const, characterId };
@@ -418,7 +463,8 @@ export class GameDatabase {
   async profile(discordId: string) {
     const result = await this.pool.query(
       `SELECT u.currency, u.rolls_used, u.claims_count, u.available_rolls,
-              u.roll_replenishment_at,
+              u.roll_replenishment_at, u.available_claims,
+              u.claim_replenishment_at,
               COUNT(o.character_id)::int AS unique_characters,
               COALESCE(SUM(o.quantity), 0)::int AS total_copies,
               COUNT(o.character_id) FILTER (WHERE o.favorite)::int AS favorites,
@@ -433,6 +479,8 @@ export class GameDatabase {
           rolls_used: number;
           available_rolls: number;
           roll_replenishment_at: Date | null;
+          available_claims: number;
+          claim_replenishment_at: Date | null;
           claims_count: number;
           unique_characters: number;
           total_copies: number;

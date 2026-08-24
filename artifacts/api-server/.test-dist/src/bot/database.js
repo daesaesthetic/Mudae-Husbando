@@ -12,6 +12,8 @@ export class GameDatabase {
     rollExpirationMs = Number(process.env.ROLL_EXPIRATION_MS ?? 15 * 60 * 1000);
     rollPoolSize = Number(process.env.ROLL_POOL_SIZE ?? 10);
     rollReplenishmentMs = Number(process.env.ROLL_REPLENISHMENT_MS ?? 60 * 60 * 1000);
+    claimPoolSize = Number(process.env.CLAIM_POOL_SIZE ?? 1);
+    claimReplenishmentMs = Number(process.env.CLAIM_REPLENISHMENT_MS ?? 60 * 60 * 1000);
     constructor(pool) {
         if (!pool && !process.env.DATABASE_URL) {
             throw new Error("DATABASE_URL is required for persistent game storage.");
@@ -157,6 +159,28 @@ export class GameDatabase {
         const client = await this.pool.connect();
         try {
             await client.query("BEGIN");
+            const user = await client.query(`SELECT available_claims, claim_replenishment_at
+         FROM mudae_users WHERE discord_id = $1 FOR UPDATE`, [discordId]);
+            if (!user.rowCount) {
+                await client.query("ROLLBACK");
+                return "invalid";
+            }
+            let availableClaims = Number(user.rows[0].available_claims);
+            const claimReplenishmentAt = user.rows[0].claim_replenishment_at;
+            if (availableClaims === 0 &&
+                claimReplenishmentAt &&
+                new Date(claimReplenishmentAt).getTime() <= Date.now()) {
+                availableClaims = this.claimPoolSize;
+            }
+            if (availableClaims <= 0) {
+                await client.query("ROLLBACK");
+                return {
+                    status: "claim_unavailable",
+                    replenishmentAt: claimReplenishmentAt
+                        ? new Date(claimReplenishmentAt)
+                        : null,
+                };
+            }
             const roll = await client.query(`SELECT r.id, r.discord_id, r.character_id, r.claimed_by, r.expires_at, c.status
          FROM mudae_rolls r JOIN mudae_characters c ON c.id = r.character_id
          WHERE r.id = COALESCE(NULLIF($1, '')::uuid, (
@@ -193,7 +217,18 @@ export class GameDatabase {
             await client.query("UPDATE mudae_rolls SET claimed_by = $2, claimed_at = NOW() WHERE id = $1", [selectedRoll.id, discordId]);
             await client.query(`INSERT INTO mudae_collections (discord_id, character_id, quantity)
          VALUES ($1,$2,1) ON CONFLICT (discord_id, character_id) DO NOTHING`, [discordId, characterId]);
-            await client.query("UPDATE mudae_users SET claims_count = claims_count + 1, updated_at = NOW() WHERE discord_id = $1", [discordId]);
+            await client.query(`UPDATE mudae_users
+         SET claims_count = claims_count + 1,
+             available_claims = $2,
+             claim_replenishment_at = $3,
+             updated_at = NOW()
+         WHERE discord_id = $1`, [
+                discordId,
+                availableClaims - 1,
+                availableClaims - 1 === 0
+                    ? new Date(Date.now() + this.claimReplenishmentMs)
+                    : null,
+            ]);
             await client.query("COMMIT");
             return { status: "success", characterId };
         }
@@ -268,7 +303,8 @@ export class GameDatabase {
     }
     async profile(discordId) {
         const result = await this.pool.query(`SELECT u.currency, u.rolls_used, u.claims_count, u.available_rolls,
-              u.roll_replenishment_at,
+              u.roll_replenishment_at, u.available_claims,
+              u.claim_replenishment_at,
               COUNT(o.character_id)::int AS unique_characters,
               COALESCE(SUM(o.quantity), 0)::int AS total_copies,
               COUNT(o.character_id) FILTER (WHERE o.favorite)::int AS favorites,

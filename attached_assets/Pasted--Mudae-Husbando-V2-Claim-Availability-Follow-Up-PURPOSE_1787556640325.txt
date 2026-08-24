@@ -1,0 +1,739 @@
+# Mudae Husbando V2 — Claim Availability Follow-Up
+
+## PURPOSE
+
+Continue from the current repository state and the previous Roll Pool Adjustment task.
+
+The previous investigation correctly determined:
+
+> The repository has no existing claim-cooldown duration or persistent claim-availability mechanism to restore.
+
+Therefore, do **not** search for an existing claim cooldown to restore.
+
+We are explicitly establishing the intended gameplay rule now.
+
+---
+
+# 1. NEW CLAIM AVAILABILITY RULE
+
+Implement a persistent **claim availability pool** separate from the roll pool.
+
+Normal users receive:
+
+```text
+1 available claim
+```
+
+The default claim replenishment duration is:
+
+```text
+1 hour
+```
+
+After the user successfully claims a character:
+
+```text
+available_claims = 0
+claim_replenishment_at = current time + 1 hour
+```
+
+The user cannot successfully claim another character while the claim is unavailable.
+
+When the replenishment timestamp expires:
+
+```text
+available_claims = 1
+claim_replenishment_at = NULL
+```
+
+The next claim is allowed.
+
+---
+
+# 2. CONFIGURATION
+
+Add configuration using the repository's existing configuration conventions:
+
+```text
+CLAIM_POOL_SIZE
+```
+
+Default:
+
+```text
+1
+```
+
+and:
+
+```text
+CLAIM_REPLENISHMENT_MS
+```
+
+Default:
+
+```text
+1 hour
+```
+
+Do not hard-code these values inside `/claim`.
+
+Keep the system configurable for future balancing.
+
+Even though the current pool size is 1, use a pool model rather than a boolean/cooldown-only implementation so the system can support multiple claims in the future without architectural replacement.
+
+---
+
+# 3. DATABASE STATE
+
+Add persistent state to the authoritative user record using an additive PostgreSQL migration.
+
+Conceptual fields:
+
+```text
+available_claims
+claim_replenishment_at
+```
+
+Use the repository's actual naming and SQL conventions.
+
+Expected conceptual schema:
+
+```text
+available_claims INTEGER NOT NULL DEFAULT 1
+claim_replenishment_at TIMESTAMPTZ
+```
+
+Add an appropriate non-negative constraint if consistent with the existing roll-pool implementation.
+
+Do not modify historical migrations.
+
+Do not recreate the user table.
+
+Do not reset existing users.
+
+Existing users should receive:
+
+```text
+available_claims = 1
+claim_replenishment_at = NULL
+```
+
+Existing gameplay data must remain untouched.
+
+Do not modify:
+
+* collections
+* character ownership
+* claims history
+* favorites
+* wishlists
+* currency
+* `rolls_used`
+* roll records
+* `claims_count`
+
+`claims_count` remains a lifetime statistic.
+
+---
+
+# 4. CLAIM TRANSACTION
+
+Integrate claim availability into the existing `claimRoll()` transaction.
+
+This is critical.
+
+The existing claim transaction and global character uniqueness system are already authoritative.
+
+Preserve:
+
+* PostgreSQL transaction
+* roll row locking
+* character advisory locking
+* ownership checks
+* expiration checks
+* verified-character checks
+* first-claim-wins behavior
+* collection insertion
+* claim count increment
+
+The new claim availability state must be integrated without weakening any of these protections.
+
+A successful claim must atomically:
+
+1. Lock the user's database row appropriately.
+2. Restore an expired claim pool if applicable.
+3. Verify claim availability.
+4. Perform all existing claim validation.
+5. Claim the character.
+6. Update the collection.
+7. Increment `claims_count`.
+8. Consume exactly one available claim.
+9. If the claim reaches zero, start the replenishment timestamp.
+10. Commit.
+
+If the claim fails for any reason, the user must **not lose their claim availability**.
+
+Do not consume the claim before the existing claim transaction has successfully completed.
+
+---
+
+# 5. CONCURRENCY
+
+The database must remain authoritative.
+
+Do not use an in-memory lock.
+
+If:
+
+```text
+available_claims = 1
+```
+
+and two claim requests from the same user happen concurrently:
+
+```text
+Request A ─┐
+           ├── same user
+Request B ─┘
+```
+
+the result must be:
+
+```text
+Exactly one successful claim.
+Exactly one rejected claim.
+available_claims never becomes negative.
+```
+
+Use the existing PostgreSQL transaction/locking architecture.
+
+The user row should be protected so concurrent claims cannot both consume the same claim availability.
+
+The existing character-specific advisory lock and global uniqueness protection must remain intact.
+
+---
+
+# 6. CLAIM REJECTION
+
+After the user successfully claims:
+
+```text
+available_claims = 0
+claim_replenishment_at = future timestamp
+```
+
+A subsequent immediate `/claim` must be rejected.
+
+The response should clearly communicate that the user's claim is unavailable and that another claim will become available after the replenishment period.
+
+Do not report:
+
+> This roll has already been claimed.
+
+unless the actual roll being targeted is independently already claimed.
+
+The user-level claim availability restriction is a separate reason for rejection.
+
+Use the existing Discord presentation conventions.
+
+---
+
+# 7. CLAIM AVAILABILITY IS INDEPENDENT FROM ROLLS
+
+This is mandatory.
+
+The roll pool and claim pool are separate systems.
+
+Example:
+
+```text
+10 rolls
+1 claim
+
+/roll
+→ 9 rolls
+1 claim
+
+/claim
+→ 9 rolls
+0 claims
+
+/roll
+→ 8 rolls
+0 claims
+```
+
+The user must still be able to roll while their claim is unavailable.
+
+Likewise, rolling must never restore or consume a claim.
+
+Do not connect:
+
+```text
+available_rolls
+```
+
+and:
+
+```text
+available_claims
+```
+
+except through the shared user record.
+
+---
+
+# 8. CLAIM REPLENISHMENT
+
+Replenishment should use the same persistent/lazy model established for rolls.
+
+Do not use:
+
+```text
+setTimeout()
+setInterval()
+```
+
+as the source of truth.
+
+The database timestamp is authoritative.
+
+If:
+
+```text
+available_claims = 0
+claim_replenishment_at = future
+```
+
+the claim remains unavailable.
+
+If:
+
+```text
+available_claims = 0
+claim_replenishment_at = expired
+```
+
+the next relevant claim interaction should atomically restore the pool.
+
+After restoration:
+
+```text
+available_claims = 1
+claim_replenishment_at = NULL
+```
+
+Then the claim may proceed.
+
+Do not require a continuously running background timer.
+
+---
+
+# 9. FAILED CLAIMS MUST NOT CONSUME AVAILABILITY
+
+This is particularly important because the existing claim system performs several validations.
+
+If a claim fails because of:
+
+* already claimed roll
+* expired roll
+* character ownership conflict
+* invalid roll
+* unverified character
+* transaction failure
+* any other existing claim validation
+
+then:
+
+```text
+available_claims
+```
+
+must remain unchanged.
+
+Only a **successful character claim** consumes the user's claim availability.
+
+---
+
+# 10. EXISTING GLOBAL UNIQUENESS MUST REMAIN UNCHANGED
+
+Do not solve this problem by modifying character ownership.
+
+The existing rule remains:
+
+> There is only one globally claimable copy of each character. The first successful claimant owns it.
+
+Preserve all existing advisory locking and ownership checks.
+
+The new claim pool controls:
+
+```text
+Can this user perform another claim?
+```
+
+It does not control:
+
+```text
+Who owns this character?
+```
+
+These are separate concerns.
+
+---
+
+# 11. DEVELOPER MODE
+
+Do not automatically make Developer Mode bypass claim availability.
+
+For this milestone:
+
+```text
+Developer Mode
+→ bypasses roll-pool availability only
+```
+
+Claim availability remains enforced unless the existing repository explicitly requires otherwise.
+
+Therefore:
+
+```text
+Developer Mode ON
+→ unlimited development rolls
+→ normal claim availability still applies
+```
+
+Do not create a special developer claim system.
+
+---
+
+# 12. PROFILE
+
+If the current `/profile` implementation can expose this cleanly, add:
+
+```text
+Claims Available: 1 / 1
+```
+
+When unavailable:
+
+```text
+Claims Available: 0 / 1
+Replenishes in: 42m
+```
+
+Use configuration rather than hard-coding the maximum.
+
+Do not redesign `/profile`.
+
+`claims_count` must continue representing the lifetime number of successful claims.
+
+---
+
+# 13. TESTS REQUIRED
+
+Add focused automated coverage.
+
+## Initialization
+
+```text
+new user
+→ available_claims = 1
+→ claim_replenishment_at = NULL
+```
+
+## Successful claim
+
+```text
+available_claims = 1
+→ successful claim
+→ available_claims = 0
+→ replenishment timestamp set
+```
+
+## Immediate repeated claim
+
+Mandatory:
+
+```text
+claim
+→ success
+
+claim immediately again
+→ rejected
+```
+
+## Claim replenishment
+
+Test:
+
+```text
+0 claims
++
+active replenishment timestamp
+→ rejected
+```
+
+and:
+
+```text
+0 claims
++
+expired replenishment timestamp
+→ restored to 1
+→ timestamp cleared
+→ claim succeeds
+```
+
+## Claim independence from rolls
+
+Mandatory:
+
+```text
+10 rolls
+1 claim
+
+/roll
+→ 9 rolls
+
+/claim
+→ 9 rolls
+→ 0 claims
+
+/roll
+→ 8 rolls
+→ 0 claims
+```
+
+## Roll independence from claims
+
+Verify that rolling never restores claim availability.
+
+## Failed claim
+
+Verify an unsuccessful claim does not consume claim availability.
+
+## Concurrent claims
+
+With one claim available:
+
+```text
+two simultaneous claim attempts
+→ exactly one successful claim
+→ exactly one rejected
+```
+
+## Global uniqueness regression
+
+Existing uniqueness tests must remain passing.
+
+## Developer Mode
+
+Verify Developer Mode continues bypassing roll availability but does not bypass the claim pool.
+
+---
+
+# 14. LIVE TEST
+
+If Discord access is available:
+
+### Claim
+
+Perform:
+
+```text
+/roll
+/claim
+/claim
+```
+
+Expected:
+
+```text
+first /claim
+→ success
+
+second /claim
+→ rejected
+```
+
+Then verify:
+
+```text
+/roll
+```
+
+still works if rolls remain.
+
+### Profile
+
+Verify:
+
+```text
+Claims Available: 0 / 1
+```
+
+after claiming, if the profile exposes claim availability.
+
+### Replenishment
+
+Use a temporary test configuration if necessary to avoid waiting one hour.
+
+Verify the claim becomes available again after the configured period.
+
+Restore production configuration afterward.
+
+---
+
+# 15. VALIDATION
+
+Run:
+
+```text
+pnpm run typecheck
+```
+
+```text
+pnpm --filter @workspace/api-server run test
+```
+
+```text
+pnpm --filter @workspace/api-server run build
+```
+
+Verify:
+
+```text
+GET /api/healthz
+```
+
+still returns:
+
+```json
+{"status":"ok"}
+```
+
+Run:
+
+```text
+git status --short
+```
+
+```text
+git diff --stat
+```
+
+Do not commit.
+
+---
+
+# 16. FINAL REPORT
+
+Report:
+
+## Claim Pool
+
+* Default claim pool size
+* Replenishment duration
+* Persistent database fields
+* Consumption behavior
+* Exhaustion behavior
+* Replenishment behavior
+* Concurrency behavior
+
+## Claim Integrity
+
+Confirm:
+
+* immediate repeated claim is rejected
+* successful claims consume exactly one availability
+* failed claims do not consume availability
+* existing claim transaction remains intact
+* global uniqueness remains intact
+* advisory locking remains intact
+* collection ownership remains intact
+* `claims_count` remains a lifetime statistic
+
+## Roll Independence
+
+Confirm:
+
+* claims do not consume rolls
+* claims do not restore rolls
+* rolls do not consume claims
+* rolls do not restore claims
+* Developer Mode remains a roll-only availability bypass
+
+## Validation
+
+Provide exact results for:
+
+* typecheck
+* tests
+* build
+* health endpoint
+* live Discord testing
+
+## Files Changed
+
+List every modified and added file.
+
+## Database
+
+List:
+
+* migration number
+* fields added
+* defaults
+* constraints
+
+## Git
+
+Report:
+
+```text
+git status --short
+git diff --stat
+```
+
+Do not commit.
+
+---
+
+# FINAL AUTHORITY
+
+The intended gameplay model is now:
+
+```text
+NORMAL USER
+
+10 rolls
+1 claim
+
+/roll
+→ consumes 1 roll
+
+/claim
+→ consumes 1 claim
+
+/claim again immediately
+→ rejected
+
+/roll again
+→ allowed if rolls remain
+
+After 1 hour:
+claim becomes available again
+```
+
+The claim pool and roll pool are completely independent.
+
+The existing global character uniqueness and claim transaction system remains authoritative.
+
+The current repository does not contain an existing claim cooldown to restore. **This prompt explicitly establishes the new claim availability rule: one claim with a one-hour replenishment period.**
+
+Implement this as a persistent database-backed availability pool, not an in-memory cooldown.
+
+Do not broaden the scope.
+
+Do not commit.

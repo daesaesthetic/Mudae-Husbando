@@ -90,6 +90,8 @@ export function profileCard(displayName: string, profile: {
   rolls_used: number;
   available_rolls: number;
   roll_replenishment_at: Date | null;
+  available_claims: number;
+  claim_replenishment_at: Date | null;
   currency: number;
 }) {
   return {
@@ -113,6 +115,18 @@ export function profileCard(displayName: string, profile: {
             ? [{
                 name: "Replenishes In",
                 value: `${Math.ceil(Math.max(0, new Date(profile.roll_replenishment_at).getTime() - Date.now()) / 60_000)} minutes`,
+                inline: true,
+              }]
+            : []),
+          {
+            name: "Claims Available",
+            value: `${profile.available_claims} / ${Number(process.env.CLAIM_POOL_SIZE ?? 1)}`,
+            inline: true,
+          },
+          ...(profile.available_claims === 0 && profile.claim_replenishment_at
+            ? [{
+                name: "Claim Replenishes In",
+                value: `${Math.ceil(Math.max(0, new Date(profile.claim_replenishment_at).getTime() - Date.now()) / 60_000)} minutes`,
                 inline: true,
               }]
             : []),

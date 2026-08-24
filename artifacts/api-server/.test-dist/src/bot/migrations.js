@@ -103,6 +103,18 @@ export const migrations = [
         ALTER COLUMN available_rolls SET DEFAULT 10;
     `,
     },
+    {
+        id: "006",
+        name: "persistent-claim-pool",
+        sql: `
+      ALTER TABLE mudae_users
+        ADD COLUMN IF NOT EXISTS available_claims INTEGER NOT NULL DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS claim_replenishment_at TIMESTAMPTZ;
+      ALTER TABLE mudae_users
+        ADD CONSTRAINT mudae_users_available_claims_nonnegative
+        CHECK (available_claims >= 0);
+    `,
+    },
 ];
 export function pendingMigrations(appliedIds, available = migrations) {
     return available.filter((migration) => !appliedIds.has(migration.id));

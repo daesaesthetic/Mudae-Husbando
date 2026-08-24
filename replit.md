@@ -16,6 +16,8 @@ An actual Discord character-collection game with a verified-only catalog and per
 - Optional env: `DISCORD_CLIENT_ID` — application ID; if omitted, the bot resolves it from Discord
 - Optional env: `ROLL_POOL_SIZE` — normal user roll pool size; defaults to 10
 - Optional env: `ROLL_REPLENISHMENT_MS` — replenishment delay after the pool reaches zero; defaults to 1 hour
+- Optional env: `CLAIM_POOL_SIZE` — normal user claim pool size; defaults to 1
+- Optional env: `CLAIM_REPLENISHMENT_MS` — claim replenishment delay after a successful claim; defaults to 1 hour
 
 ## Stack
 
